@@ -21,5 +21,6 @@ router.get('/github/callback', passport.authenticate('github', { session: false,
 // Protected routes
 router.get('/me', authenticate, authController.getMe);
 router.put('/me', authenticate, validate(updateProfileSchema), authController.updateMe);
+router.put('/profile', authenticate, validate(updateProfileSchema), authController.updateMe);
 
 module.exports = router;
