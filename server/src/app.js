@@ -19,6 +19,14 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Normalize multiple consecutive slashes (e.g. //auth/google -> /auth/google)
+app.use((req, res, next) => {
+  if (req.url.includes('//')) {
+    req.url = req.url.replace(/\/+/g, '/');
+  }
+  next();
+});
+
 // Logging
 if (env.NODE_ENV === 'development') {
   app.use(morgan('dev'));

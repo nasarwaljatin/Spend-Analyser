@@ -53,8 +53,8 @@ export default function Login() {
   };
 
   const handleOAuth = (provider) => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-    window.location.href = `${apiUrl}/auth/${provider}`;
+    const rawUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/+$/, '');
+    window.location.href = `${rawUrl}/auth/${provider}`;
   };
 
   return (
