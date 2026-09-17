@@ -1,0 +1,30 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.production
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+# Local Databases
+*.db
+*.sqlite
+dev.db*
+
+# Prisma
+server/prisma/migrations/**/migration_lock.toml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker volumes
+pgdata/

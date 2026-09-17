@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: spend-analyser-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install && npx prisma generate
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # Set in Render Dashboard: mongodb+srv://<user>:<password>@cluster0.mongodb.net/spend_analyser?retryWrites=true&w=majority
+      - key: CLIENT_URL
+        sync: false # Set in Render Dashboard: https://your-app.vercel.app
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRY
+        value: 15m
+      - key: JWT_REFRESH_EXPIRY
+        value: 7d
+      - key: EXCHANGE_RATE_API_URL
+        value: https://open.er-api.com/v6/latest
