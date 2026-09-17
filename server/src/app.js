@@ -27,17 +27,39 @@ if (env.NODE_ENV === 'development') {
 // Rate limiting
 app.use('/api', apiLimiter);
 
-// Routes
-app.use('/api/auth', require('./routes/auth.routes'));
-app.use('/api/transactions', require('./routes/transaction.routes'));
-app.use('/api/categories', require('./routes/category.routes'));
-app.use('/api/reports', require('./routes/report.routes'));
-app.use('/api/budgets', require('./routes/budget.routes'));
-app.use('/api/recurring', require('./routes/recurring.routes'));
-app.use('/api/export', require('./routes/export.routes'));
+// Route modules
+const authRoutes = require('./routes/auth.routes');
+const transactionRoutes = require('./routes/transaction.routes');
+const categoryRoutes = require('./routes/category.routes');
+const reportRoutes = require('./routes/report.routes');
+const budgetRoutes = require('./routes/budget.routes');
+const recurringRoutes = require('./routes/recurring.routes');
+const exportRoutes = require('./routes/export.routes');
 
-// Health check
-app.get('/api/health', (req, res) => {
+// Mount on both /api/path and /path to gracefully support VITE_API_URL with or without /api suffix
+app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
+
+app.use('/api/transactions', transactionRoutes);
+app.use('/transactions', transactionRoutes);
+
+app.use('/api/categories', categoryRoutes);
+app.use('/categories', categoryRoutes);
+
+app.use('/api/reports', reportRoutes);
+app.use('/reports', reportRoutes);
+
+app.use('/api/budgets', budgetRoutes);
+app.use('/budgets', budgetRoutes);
+
+app.use('/api/recurring', recurringRoutes);
+app.use('/recurring', recurringRoutes);
+
+app.use('/api/export', exportRoutes);
+app.use('/export', exportRoutes);
+
+// Health check (available at /api/health and /health)
+app.get(['/api/health', '/health'], (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
