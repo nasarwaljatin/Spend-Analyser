@@ -1,10 +1,23 @@
 const prisma = require('../config/db');
 const { ApiError } = require('../utils/helpers');
+const { seedCategoriesForUser } = require('../../prisma/seed');
 
 const getCategories = async (userId, type, includeHidden = false) => {
+  // Auto-seed default categories if user has none
+  const count = await prisma.category.count({ where: { userId } });
+  if (count === 0) {
+    try {
+      await seedCategoriesForUser(userId);
+    } catch (err) {
+      console.error('Error auto-seeding categories for user:', err);
+    }
+  }
+
   const where = { userId };
   if (type) where.type = type;
-  if (!includeHidden) where.isHidden = false;
+  if (!includeHidden) {
+    where.NOT = { isHidden: true };
+  }
 
   const categories = await prisma.category.findMany({
     where,

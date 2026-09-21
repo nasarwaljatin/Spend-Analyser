@@ -99,12 +99,23 @@ export default function Transactions() {
     fetchTransactions(1);
   };
 
-  const openCreateModal = () => {
+  const openCreateModal = async () => {
     setEditingId(null);
+    let cats = categories;
+    if (cats.length === 0) {
+      try {
+        const res = await categoryService.getAll();
+        cats = res.data || [];
+        setCategories(cats);
+      } catch (err) {
+        console.error('Failed to load categories', err);
+      }
+    }
+    const defaultCat = cats.find((c) => c.type === 'spend' && !c.isHidden);
     setFormData({
       type: 'spend',
       amount: '',
-      categoryId: categories.find((c) => c.type === 'spend')?.id || '',
+      categoryId: defaultCat?.id || '',
       description: '',
       transactionDate: new Date().toISOString().split('T')[0],
       notes: '',
