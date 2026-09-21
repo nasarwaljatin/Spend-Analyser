@@ -143,15 +143,26 @@ export default function Recurring() {
   };
 
   const availableCategories = useMemo(() => {
-    return [...categories]
-      .filter((c) => c.type === formData.type)
-      .sort((a, b) => {
-        const countA = a._count?.transactions || 0;
-        const countB = b._count?.transactions || 0;
-        if (countB !== countA) return countB - countA;
-        return a.name.localeCompare(b.name);
-      });
+    const list = categories.filter((c) => (c.type || '').toLowerCase() === (formData.type || '').toLowerCase());
+    const unhidden = list.filter((c) => c.isHidden !== true && c.isHidden !== 1);
+    const finalChoices = unhidden.length > 0 ? unhidden : list;
+
+    return [...finalChoices].sort((a, b) => {
+      const countA = a._count?.transactions || 0;
+      const countB = b._count?.transactions || 0;
+      if (countB !== countA) return countB - countA;
+      return (a.name || '').localeCompare(b.name || '');
+    });
   }, [categories, formData.type]);
+
+  useEffect(() => {
+    if (availableCategories.length > 0 && !availableCategories.some((c) => c.id === formData.categoryId)) {
+      setFormData((prev) => ({
+        ...prev,
+        categoryId: availableCategories[0].id,
+      }));
+    }
+  }, [availableCategories]);
 
   return (
     <div className="page-content">

@@ -52,31 +52,38 @@ const seedCategoriesForUser = async (userId) => {
 };
 
 const getCategories = async (userId, type, includeHidden = false) => {
-  // Auto-seed default categories if user has none
-  const count = await prisma.category.count({ where: { userId } });
-  if (count === 0) {
-    await seedCategoriesForUser(userId);
-  }
-
   const where = { userId };
   if (type) where.type = type;
-  if (!includeHidden) {
-    where.NOT = { isHidden: true };
-  }
 
-  const categories = await prisma.category.findMany({
+  let categories = await prisma.category.findMany({
     where,
     include: {
       _count: { select: { transactions: true } },
     },
   });
 
+  // Auto-seed default categories if user has none
+  if (categories.length === 0 && !type) {
+    await seedCategoriesForUser(userId);
+    categories = await prisma.category.findMany({
+      where,
+      include: {
+        _count: { select: { transactions: true } },
+      },
+    });
+  }
+
+  // Filter out hidden categories in JS if not explicitly requested
+  if (!includeHidden) {
+    categories = categories.filter((c) => c.isHidden !== true && c.isHidden !== 1);
+  }
+
   // Sort by number of times chosen (transaction usage count) descending, then alphabetically by name
   categories.sort((a, b) => {
     const countA = a._count?.transactions || 0;
     const countB = b._count?.transactions || 0;
     if (countB !== countA) return countB - countA;
-    return a.name.localeCompare(b.name);
+    return (a.name || '').localeCompare(b.name || '');
   });
 
   return categories;
