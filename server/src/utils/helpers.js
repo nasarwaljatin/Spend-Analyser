@@ -30,13 +30,16 @@ const parsePagination = (query) => {
  * Build a standard paginated response.
  */
 const paginatedResponse = (data, total, page, limit) => {
+  const totalPages = Math.ceil(total / limit) || 1;
   return {
     data,
+    transactions: data,
     pagination: {
       page,
       limit,
       total,
-      totalPages: Math.ceil(total / limit),
+      totalPages,
+      pages: totalPages,
       hasNext: page * limit < total,
       hasPrev: page > 1,
     },

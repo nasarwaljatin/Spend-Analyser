@@ -87,8 +87,13 @@ export default function Transactions() {
         sortOrder,
       };
       const res = await transactionService.getAll(params);
-      setTransactions(res.data.transactions || []);
-      setPagination(res.data.pagination || { page: 1, limit: 10, total: 0, pages: 1 });
+      const list = res.data?.transactions || res.data?.data || (Array.isArray(res.data) ? res.data : []);
+      const paginationData = res.data?.pagination || { page: 1, limit: 10, total: list.length, pages: 1 };
+      if (!paginationData.pages && paginationData.totalPages) {
+        paginationData.pages = paginationData.totalPages;
+      }
+      setTransactions(list);
+      setPagination(paginationData);
     } catch (err) {
       console.error('Error loading transactions', err);
       addToast({ type: 'error', message: 'Could not fetch transactions' });

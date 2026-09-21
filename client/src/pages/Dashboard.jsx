@@ -76,7 +76,8 @@ export default function Dashboard() {
         setTrendData(trendRes.value.data || []);
       }
       if (txRes.status === 'fulfilled') {
-        setRecentTransactions(txRes.value.data.transactions || []);
+        const txList = txRes.value.data?.transactions || txRes.value.data?.data || (Array.isArray(txRes.value.data) ? txRes.value.data : []);
+        setRecentTransactions(txList);
       }
       if (budgetRes.status === 'fulfilled') {
         setBudgets(budgetRes.value.data || []);
