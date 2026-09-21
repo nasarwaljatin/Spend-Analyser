@@ -64,6 +64,10 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
                   avatarUrl: existingUser.avatarUrl || profile.photos?.[0]?.value,
                 },
               });
+              const count = await prisma.category.count({ where: { userId: user.id } });
+              if (count === 0) {
+                await seedCategoriesForUser(user.id);
+              }
             } else {
               user = await prisma.user.create({
                 data: {
@@ -117,6 +121,10 @@ if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
                   avatarUrl: existingUser.avatarUrl || profile.photos?.[0]?.value,
                 },
               });
+              const count = await prisma.category.count({ where: { userId: user.id } });
+              if (count === 0) {
+                await seedCategoriesForUser(user.id);
+              }
             } else {
               user = await prisma.user.create({
                 data: {

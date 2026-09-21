@@ -65,9 +65,12 @@ export default function Transactions() {
   const fetchCategories = async () => {
     try {
       const res = await categoryService.getAll();
-      setCategories(res.data || []);
+      const list = res.data || [];
+      setCategories(list);
+      return list;
     } catch (err) {
       console.error('Failed to load categories', err);
+      return [];
     }
   };
 
@@ -102,16 +105,10 @@ export default function Transactions() {
   const openCreateModal = async () => {
     setEditingId(null);
     let cats = categories;
-    if (cats.length === 0) {
-      try {
-        const res = await categoryService.getAll();
-        cats = res.data || [];
-        setCategories(cats);
-      } catch (err) {
-        console.error('Failed to load categories', err);
-      }
+    if (!cats || cats.length === 0) {
+      cats = await fetchCategories();
     }
-    const defaultCat = cats.find((c) => c.type === 'spend' && !c.isHidden);
+    const defaultCat = cats.find((c) => c.type === 'spend' && !c.isHidden) || cats.find((c) => c.type === 'spend') || cats[0];
     setFormData({
       type: 'spend',
       amount: '',
@@ -169,7 +166,7 @@ export default function Transactions() {
       addToast({ type: 'success', message: 'Transaction deleted' });
       fetchTransactions(pagination.page);
       fetchCategories();
-    } catch (err) {
+    } catch {
       addToast({ type: 'error', message: 'Failed to delete transaction' });
     }
   };
@@ -194,12 +191,12 @@ export default function Transactions() {
 
   const availableCategories = useMemo(() => {
     return [...categories]
-      .filter((c) => c.type === formData.type)
+      .filter((c) => c.type === formData.type && !c.isHidden)
       .sort((a, b) => {
         const countA = a._count?.transactions || 0;
         const countB = b._count?.transactions || 0;
         if (countB !== countA) return countB - countA;
-        return a.name.localeCompare(b.name);
+        return (a.name || '').localeCompare(b.name || '');
       });
   }, [categories, formData.type]);
 
@@ -423,10 +420,11 @@ export default function Transactions() {
               type="button"
               className="btn"
               onClick={() => {
+                const defaultSpend = categories.find((c) => c.type === 'spend' && !c.isHidden) || categories.find((c) => c.type === 'spend');
                 setFormData((prev) => ({
                   ...prev,
                   type: 'spend',
-                  categoryId: categories.find((c) => c.type === 'spend')?.id || '',
+                  categoryId: defaultSpend?.id || '',
                 }));
               }}
               style={{
@@ -441,10 +439,11 @@ export default function Transactions() {
               type="button"
               className="btn"
               onClick={() => {
+                const defaultEarn = categories.find((c) => c.type === 'earning' && !c.isHidden) || categories.find((c) => c.type === 'earning');
                 setFormData((prev) => ({
                   ...prev,
                   type: 'earning',
-                  categoryId: categories.find((c) => c.type === 'earning')?.id || '',
+                  categoryId: defaultEarn?.id || '',
                 }));
               }}
               style={{

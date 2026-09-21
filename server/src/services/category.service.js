@@ -1,16 +1,61 @@
 const prisma = require('../config/db');
 const { ApiError } = require('../utils/helpers');
-const { seedCategoriesForUser } = require('../../prisma/seed');
+
+const defaultSpendCategories = [
+  { name: 'Food & Dining', icon: '🍕', color: '#ef4444' },
+  { name: 'Rent / Housing', icon: '🏠', color: '#8b5cf6' },
+  { name: 'Transportation', icon: '🚗', color: '#f97316' },
+  { name: 'Groceries', icon: '🛒', color: '#22c55e' },
+  { name: 'Healthcare', icon: '💊', color: '#ec4899' },
+  { name: 'Entertainment', icon: '🎬', color: '#a855f7' },
+  { name: 'Shopping / Clothing', icon: '👕', color: '#06b6d4' },
+  { name: 'Phone & Internet', icon: '📱', color: '#3b82f6' },
+  { name: 'Utilities', icon: '⚡', color: '#eab308' },
+  { name: 'Education', icon: '📚', color: '#14b8a6' },
+  { name: 'Travel', icon: '✈️', color: '#6366f1' },
+  { name: 'Subscriptions', icon: '📦', color: '#0ea5e9' },
+  { name: 'Miscellaneous', icon: '❓', color: '#64748b' },
+];
+
+const defaultEarningCategories = [
+  { name: 'Salary', icon: '💼', color: '#10b981' },
+  { name: 'Freelance / Side Income', icon: '💻', color: '#22d3ee' },
+  { name: 'Investments', icon: '📈', color: '#34d399' },
+  { name: 'Interest', icon: '🏦', color: '#a3e635' },
+  { name: 'Bonus', icon: '🎯', color: '#fbbf24' },
+  { name: 'Refunds', icon: '🤝', color: '#818cf8' },
+];
+
+const seedCategoriesForUser = async (userId) => {
+  const items = [
+    ...defaultSpendCategories.map((c) => ({ ...c, type: 'spend', userId, isDefault: true, isHidden: false })),
+    ...defaultEarningCategories.map((c) => ({ ...c, type: 'earning', userId, isDefault: true, isHidden: false })),
+  ];
+
+  for (const cat of items) {
+    try {
+      await prisma.category.upsert({
+        where: {
+          userId_name_type: {
+            userId: cat.userId,
+            name: cat.name,
+            type: cat.type,
+          },
+        },
+        update: {},
+        create: cat,
+      });
+    } catch {
+      // ignore
+    }
+  }
+};
 
 const getCategories = async (userId, type, includeHidden = false) => {
   // Auto-seed default categories if user has none
   const count = await prisma.category.count({ where: { userId } });
   if (count === 0) {
-    try {
-      await seedCategoriesForUser(userId);
-    } catch (err) {
-      console.error('Error auto-seeding categories for user:', err);
-    }
+    await seedCategoriesForUser(userId);
   }
 
   const where = { userId };
