@@ -2,7 +2,8 @@ const categoryService = require('../services/category.service');
 const { asyncHandler } = require('../utils/helpers');
 
 const getAll = asyncHandler(async (req, res) => {
-  const categories = await categoryService.getCategories(req.user.id, req.query.type);
+  const includeHidden = req.query.includeHidden === 'true' || req.query.includeHidden === true;
+  const categories = await categoryService.getCategories(req.user.id, req.query.type, includeHidden);
   res.json(categories);
 });
 
@@ -17,7 +18,8 @@ const update = asyncHandler(async (req, res) => {
 });
 
 const remove = asyncHandler(async (req, res) => {
-  const result = await categoryService.deleteCategory(req.user.id, req.params.id);
+  const reassignCategoryId = req.body?.reassignCategoryId || req.query?.reassignCategoryId;
+  const result = await categoryService.deleteCategory(req.user.id, req.params.id, reassignCategoryId);
   res.json(result);
 });
 

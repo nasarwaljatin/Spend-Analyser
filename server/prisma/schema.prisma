@@ -36,6 +36,7 @@ model Category {
   icon        String        @default("💰")
   color       String        @default("#6366f1")
   isDefault   Boolean       @default(false) @map("is_default")
+  isHidden    Boolean       @default(false) @map("is_hidden")
   createdAt   DateTime      @default(now()) @map("created_at")
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)

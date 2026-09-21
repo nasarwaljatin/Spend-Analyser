@@ -3,7 +3,10 @@ import {
   IoAddOutline,
   IoPencilOutline,
   IoTrashOutline,
-  IoFolderOutline,
+  IoEyeOutline,
+  IoEyeOffOutline,
+  IoSearchOutline,
+  IoAlertCircleOutline,
 } from 'react-icons/io5';
 import { categoryService } from '../services/categoryService';
 import useToastStore from '../store/toastStore';
@@ -14,21 +17,24 @@ const EMOJI_OPTIONS = [
   '🍔', '🛒', '🚗', '💡', '🎬', '🏥', '✈️', '🎓',
   '💰', '💼', '📈', '🎁', '💻', '🏠', '👕', '☕',
   '🏋️', '📚', '📱', '🎮', '🍕', '🚌', '⛽', '🐾',
+  '🛍️', '🛠️', '🍸', '🏖️', '💈', '🧘', '⚡', '📦',
 ];
 
 const COLOR_OPTIONS = [
   '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
   '#ec4899', '#06b6d4', '#14b8a6', '#f97316', '#3b82f6',
-  '#84cc16', '#a855f7',
+  '#84cc16', '#a855f7', '#64748b', '#0ea5e9', '#e11d48',
 ];
 
 export default function Categories() {
   const [categories, setCategories] = useState([]);
-  const [activeTab, setActiveTab] = useState('spend');
+  const [activeTab, setActiveTab] = useState('spend'); // 'spend' | 'earning'
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'hidden'
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const { addToast } = useToastStore();
 
-  // Modal State
+  // Create / Edit Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [formData, setFormData] = useState({
@@ -36,7 +42,14 @@ export default function Categories() {
     type: 'spend',
     icon: '🛒',
     color: '#6366f1',
+    isHidden: false,
   });
+
+  // Delete / Reassign Modal State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
+  const [reassignTargetId, setReassignTargetId] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -45,7 +58,7 @@ export default function Categories() {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const res = await categoryService.getAll();
+      const res = await categoryService.getAll({ includeHidden: true });
       setCategories(res.data || []);
     } catch (err) {
       console.error('Failed to load categories', err);
@@ -62,6 +75,7 @@ export default function Categories() {
       type: activeTab,
       icon: activeTab === 'earning' ? '💰' : '🛒',
       color: activeTab === 'earning' ? '#10b981' : '#6366f1',
+      isHidden: false,
     });
     setIsModalOpen(true);
   };
@@ -73,6 +87,7 @@ export default function Categories() {
       type: cat.type,
       icon: cat.icon || '📁',
       color: cat.color || '#6366f1',
+      isHidden: !!cat.isHidden,
     });
     setIsModalOpen(true);
   };
@@ -87,10 +102,10 @@ export default function Categories() {
     try {
       if (editingCategory) {
         await categoryService.update(editingCategory.id, formData);
-        addToast({ type: 'success', message: 'Category updated!' });
+        addToast({ type: 'success', message: 'Category updated successfully!' });
       } else {
         await categoryService.create(formData);
-        addToast({ type: 'success', message: 'Category created!' });
+        addToast({ type: 'success', message: 'Category created successfully!' });
       }
       setIsModalOpen(false);
       fetchCategories();
@@ -102,26 +117,81 @@ export default function Categories() {
     }
   };
 
-  const handleDelete = async (cat) => {
-    if (cat.isDefault) {
-      addToast({ type: 'warning', message: 'Default categories cannot be deleted' });
-      return;
-    }
-    if (!window.confirm(`Are you sure you want to delete category "${cat.name}"?`)) return;
-
+  const handleToggleHide = async (cat) => {
+    const newHiddenState = !cat.isHidden;
     try {
-      await categoryService.delete(cat.id);
-      addToast({ type: 'success', message: 'Category deleted' });
+      await categoryService.toggleHide(cat.id, newHiddenState);
+      addToast({
+        type: 'success',
+        message: newHiddenState
+          ? `"${cat.name}" hidden from selection lists`
+          : `"${cat.name}" is now visible in selection lists`,
+      });
       fetchCategories();
     } catch (err) {
       addToast({
         type: 'error',
-        message: err.response?.data?.error || 'Cannot delete category with linked transactions',
+        message: err.response?.data?.error || 'Failed to update visibility',
       });
     }
   };
 
-  const filteredCategories = categories.filter((c) => c.type === activeTab);
+  const openDeletePrompt = (cat) => {
+    setCategoryToDelete(cat);
+    // Default reassignment candidate (first other category of same type)
+    const otherCats = categories.filter((c) => c.type === cat.type && c.id !== cat.id && !c.isHidden);
+    setReassignTargetId(otherCats[0]?.id || '');
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!categoryToDelete) return;
+    const txCount = categoryToDelete._count?.transactions || 0;
+
+    if (txCount > 0 && !reassignTargetId) {
+      addToast({
+        type: 'warning',
+        message: 'Please choose a category to reassign existing transactions to.',
+      });
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      await categoryService.delete(categoryToDelete.id, txCount > 0 ? reassignTargetId : undefined);
+      addToast({
+        type: 'success',
+        message: txCount > 0
+          ? `Category deleted and ${txCount} transaction(s) reassigned!`
+          : 'Category deleted successfully!',
+      });
+      setDeleteModalOpen(false);
+      setCategoryToDelete(null);
+      fetchCategories();
+    } catch (err) {
+      addToast({
+        type: 'error',
+        message: err.response?.data?.error || 'Failed to delete category',
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // Filter Categories
+  const filteredCategories = categories.filter((c) => {
+    if (c.type !== activeTab) return false;
+    if (statusFilter === 'active' && c.isHidden) return false;
+    if (statusFilter === 'hidden' && !c.isHidden) return false;
+    if (searchQuery.trim() && !c.name.toLowerCase().includes(searchQuery.toLowerCase().trim())) {
+      return false;
+    }
+    return true;
+  });
+
+  const totalSpend = categories.filter((c) => c.type === 'spend').length;
+  const totalEarning = categories.filter((c) => c.type === 'earning').length;
+  const hiddenCount = categories.filter((c) => c.type === activeTab && c.isHidden).length;
 
   return (
     <div className="page-content">
@@ -130,7 +200,7 @@ export default function Categories() {
         <div>
           <h1 style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 800, margin: 0 }}>Categories</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: '4px' }}>
-            Organize your transactions with customizable icons and color coding
+            Customize, edit, hide, and manage your personalized spending & earning categories
           </p>
         </div>
 
@@ -140,24 +210,75 @@ export default function Categories() {
         </button>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-        <button
-          className={`filter-chip ${activeTab === 'spend' ? 'active' : ''}`}
-          onClick={() => setActiveTab('spend')}
-          style={{ padding: '8px 20px', fontSize: 'var(--font-size-sm)' }}
-        >
-          💸 Spend Categories ({categories.filter((c) => c.type === 'spend').length})
-        </button>
-        <button
-          className={`filter-chip ${activeTab === 'earning' ? 'active' : ''}`}
-          onClick={() => setActiveTab('earning')}
-          style={{ padding: '8px 20px', fontSize: 'var(--font-size-sm)' }}
-        >
-          💰 Earning Categories ({categories.filter((c) => c.type === 'earning').length})
-        </button>
+      {/* Tabs & Controls */}
+      <div className="card" style={{ marginBottom: '24px', padding: '16px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Spend / Earning Type Tabs */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              className={`filter-chip ${activeTab === 'spend' ? 'active' : ''}`}
+              onClick={() => setActiveTab('spend')}
+              style={{ padding: '8px 16px', fontSize: 'var(--font-size-sm)' }}
+            >
+              💸 Spend Categories ({totalSpend})
+            </button>
+            <button
+              className={`filter-chip ${activeTab === 'earning' ? 'active' : ''}`}
+              onClick={() => setActiveTab('earning')}
+              style={{ padding: '8px 16px', fontSize: 'var(--font-size-sm)' }}
+            >
+              💰 Earning Categories ({totalEarning})
+            </button>
+          </div>
+
+          {/* Visibility Status Filter & Search */}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '6px', background: 'var(--bg-input)', padding: '4px', borderRadius: 'var(--radius-md)' }}>
+              <button
+                type="button"
+                className={`btn btn-sm ${statusFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ padding: '4px 10px', fontSize: 'var(--font-size-xs)' }}
+                onClick={() => setStatusFilter('all')}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${statusFilter === 'active' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ padding: '4px 10px', fontSize: 'var(--font-size-xs)' }}
+                onClick={() => setStatusFilter('active')}
+              >
+                Active
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${statusFilter === 'hidden' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ padding: '4px 10px', fontSize: 'var(--font-size-xs)' }}
+                onClick={() => setStatusFilter('hidden')}
+              >
+                Hidden {hiddenCount > 0 && `(${hiddenCount})`}
+              </button>
+            </div>
+
+            <div style={{ position: 'relative', width: '200px' }}>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Search category..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ paddingLeft: '34px', height: '36px', fontSize: 'var(--font-size-sm)' }}
+              />
+              <IoSearchOutline
+                size={16}
+                style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
+      {/* Categories Grid */}
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
           <Loader size={48} />
@@ -165,7 +286,15 @@ export default function Categories() {
       ) : filteredCategories.length > 0 ? (
         <div className="category-grid">
           {filteredCategories.map((cat) => (
-            <div key={cat.id} className="card category-card" style={{ position: 'relative' }}>
+            <div
+              key={cat.id}
+              className="card category-card"
+              style={{
+                position: 'relative',
+                opacity: cat.isHidden ? 0.65 : 1,
+                border: cat.isHidden ? '1px dashed var(--border)' : '1px solid var(--border)',
+              }}
+            >
               <div
                 className="category-icon-wrapper"
                 style={{
@@ -176,33 +305,59 @@ export default function Categories() {
                 {cat.icon}
               </div>
 
-              <div style={{ flex: 1 }}>
-                <div className="category-name">{cat.name}</div>
-                <div className="category-count">
-                  {cat.isDefault ? 'Default' : 'Custom'}
-                  {cat._count?.transactions !== undefined && ` • ${cat._count.transactions} txns`}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="category-name" style={{ fontWeight: 600 }}>{cat.name}</span>
+                  {cat.isHidden && (
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        background: 'var(--bg-input)',
+                        color: 'var(--text-secondary)',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Hidden
+                    </span>
+                  )}
+                </div>
+                <div className="category-count" style={{ marginTop: '2px', fontSize: 'var(--font-size-xs)' }}>
+                  {cat._count?.transactions > 0
+                    ? `${cat._count.transactions} transaction(s)`
+                    : 'No transactions yet'}
                 </div>
               </div>
 
+              {/* Action Buttons */}
               <div style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  onClick={() => handleToggleHide(cat)}
+                  className="btn btn-ghost btn-sm"
+                  title={cat.isHidden ? 'Unhide Category (Make visible in lists)' : 'Hide Category (Keep data, hide from dropdowns)'}
+                  style={{ padding: '6px', color: cat.isHidden ? 'var(--text-tertiary)' : 'var(--text-secondary)' }}
+                >
+                  {cat.isHidden ? <IoEyeOffOutline size={18} color="var(--warning)" /> : <IoEyeOutline size={18} />}
+                </button>
+
                 <button
                   onClick={() => openEditModal(cat)}
                   className="btn btn-ghost btn-sm"
-                  title="Edit Category"
-                  style={{ padding: '4px 6px' }}
+                  title="Edit Category (Name, Icon, Color, Type)"
+                  style={{ padding: '6px' }}
                 >
                   <IoPencilOutline size={16} />
                 </button>
-                {!cat.isDefault && (
-                  <button
-                    onClick={() => handleDelete(cat)}
-                    className="btn btn-ghost btn-sm"
-                    title="Delete Category"
-                    style={{ padding: '4px 6px', color: 'var(--spend)' }}
-                  >
-                    <IoTrashOutline size={16} />
-                  </button>
-                )}
+
+                <button
+                  onClick={() => openDeletePrompt(cat)}
+                  className="btn btn-ghost btn-sm"
+                  title="Delete Category"
+                  style={{ padding: '6px', color: 'var(--spend)' }}
+                >
+                  <IoTrashOutline size={16} />
+                </button>
               </div>
             </div>
           ))}
@@ -212,7 +367,9 @@ export default function Categories() {
           <div style={{ fontSize: '3rem', marginBottom: '12px' }}>📁</div>
           <h3 style={{ fontSize: 'var(--font-size-xl)', marginBottom: '8px' }}>No categories found</h3>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
-            Add your first custom {activeTab} category to get started.
+            {statusFilter === 'hidden'
+              ? 'No hidden categories in this section.'
+              : `Add your custom ${activeTab} category or adjust your search filter.`}
           </p>
           <button onClick={openCreateModal} className="btn btn-primary">
             + Add Category
@@ -240,7 +397,7 @@ export default function Categories() {
                   border: '1px solid var(--border)',
                 }}
               >
-                💸 Spend
+                💸 Spend Category
               </button>
               <button
                 type="button"
@@ -252,7 +409,7 @@ export default function Categories() {
                   border: '1px solid var(--border)',
                 }}
               >
-                💰 Earning
+                💰 Earning Category
               </button>
             </div>
           </div>
@@ -263,7 +420,7 @@ export default function Categories() {
               id="catName"
               type="text"
               className="form-input"
-              placeholder="e.g. Dining Out, Freelance Work"
+              placeholder="e.g. Dining Out, Freelance Work, Online Courses"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
@@ -272,7 +429,12 @@ export default function Categories() {
 
           {/* Emoji Picker */}
           <div className="form-group">
-            <label className="form-label">Choose Icon</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>Choose Icon</label>
+              <span style={{ fontSize: '1.2rem', padding: '2px 8px', background: 'var(--bg-input)', borderRadius: '6px' }}>
+                Selected: {formData.icon}
+              </span>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '6px' }}>
               {EMOJI_OPTIONS.map((emoji) => (
                 <button
@@ -296,7 +458,7 @@ export default function Categories() {
 
           {/* Color Picker */}
           <div className="form-group">
-            <label className="form-label">Choose Color Theme</label>
+            <label className="form-label">Color Theme</label>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {COLOR_OPTIONS.map((c) => (
                 <button
@@ -304,8 +466,8 @@ export default function Categories() {
                   type="button"
                   onClick={() => setFormData({ ...formData, color: c })}
                   style={{
-                    width: '32px',
-                    height: '32px',
+                    width: '30px',
+                    height: '30px',
                     borderRadius: '50%',
                     backgroundColor: c,
                     border: formData.color === c ? '3px solid #fff' : 'none',
@@ -315,6 +477,24 @@ export default function Categories() {
                 />
               ))}
             </div>
+          </div>
+
+          {/* Visibility / Hide Option */}
+          <div className="form-group" style={{ marginTop: '16px', background: 'var(--bg-input)', padding: '12px 16px', borderRadius: 'var(--radius-md)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', margin: 0 }}>
+              <input
+                type="checkbox"
+                checked={formData.isHidden}
+                onChange={(e) => setFormData({ ...formData, isHidden: e.target.checked })}
+                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+              />
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>Hide from dropdown selection lists</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-xs)' }}>
+                  Keeps existing transaction records intact while hiding it from transaction and budget pickers.
+                </div>
+              </div>
+            </label>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
@@ -330,6 +510,108 @@ export default function Categories() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete / Reassign Modal */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title={`Delete Category "${categoryToDelete?.name}"`}
+      >
+        {categoryToDelete && (
+          <div>
+            {(categoryToDelete._count?.transactions || 0) > 0 ? (
+              <div>
+                <div style={{ display: 'flex', gap: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '16px', borderRadius: 'var(--radius-md)', marginBottom: '16px' }}>
+                  <IoAlertCircleOutline size={24} color="var(--spend)" style={{ flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontWeight: 700, color: 'var(--spend)', marginBottom: '4px' }}>
+                      Linked to {categoryToDelete._count.transactions} transaction(s)
+                    </div>
+                    <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
+                      To safely delete this category, please select another {categoryToDelete.type} category to transfer its existing transactions to.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="reassignSelect">Transfer transactions to:</label>
+                  <select
+                    id="reassignSelect"
+                    className="form-input form-select"
+                    value={reassignTargetId}
+                    onChange={(e) => setReassignTargetId(e.target.value)}
+                    required
+                  >
+                    {categories
+                      .filter((c) => c.type === categoryToDelete.type && c.id !== categoryToDelete.id && !c.isHidden)
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.icon} {c.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', flexWrap: 'wrap', gap: '12px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      handleToggleHide(categoryToDelete);
+                      setDeleteModalOpen(false);
+                    }}
+                  >
+                    🙈 Hide Instead
+                  </button>
+
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setDeleteModalOpen(false)}
+                      disabled={deleteLoading}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={confirmDelete}
+                      disabled={deleteLoading || !reassignTargetId}
+                    >
+                      {deleteLoading ? 'Transferring...' : 'Transfer & Delete'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                  Are you sure you want to permanently delete category <strong>"{categoryToDelete.name}"</strong>? This action cannot be undone.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setDeleteModalOpen(false)}
+                    disabled={deleteLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={confirmDelete}
+                    disabled={deleteLoading}
+                  >
+                    {deleteLoading ? 'Deleting...' : 'Delete Permanently'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
     </div>
   );
