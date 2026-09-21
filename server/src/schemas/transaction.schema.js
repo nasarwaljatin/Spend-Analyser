@@ -8,7 +8,7 @@ const createTransactionSchema = z.object({
     .positive('Amount must be positive')
     .max(999999999999, 'Amount too large'),
   currency: z.string().length(3).default('INR'),
-  description: z.string().min(1, 'Description is required').max(500),
+  description: z.string().max(500).optional().nullable().default(''),
   transactionDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
     message: 'Invalid date format',
   }),

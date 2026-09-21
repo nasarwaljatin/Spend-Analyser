@@ -5,7 +5,7 @@ const createRecurringSchema = z.object({
   type: z.enum(['spend', 'earning']),
   amount: z.number().positive('Amount must be positive'),
   currency: z.string().length(3).default('INR'),
-  description: z.string().min(1).max(500),
+  description: z.string().max(500).optional().nullable().default(''),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
   startDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
     message: 'Invalid start date',
@@ -19,7 +19,7 @@ const createRecurringSchema = z.object({
 
 const updateRecurringSchema = z.object({
   amount: z.number().positive().optional(),
-  description: z.string().min(1).max(500).optional(),
+  description: z.string().max(500).optional().nullable(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'yearly']).optional(),
   endDate: z
     .string()

@@ -127,8 +127,8 @@ export default function Transactions() {
 
   const handleSaveTransaction = async (e) => {
     e.preventDefault();
-    if (!formData.amount || !formData.categoryId || !formData.description) {
-      addToast({ type: 'warning', message: 'Please fill all required fields' });
+    if (!formData.amount || !formData.categoryId) {
+      addToast({ type: 'warning', message: 'Please select a category and enter an amount' });
       return;
     }
 
@@ -307,7 +307,7 @@ export default function Transactions() {
 
               <div className="transaction-details">
                 <div className="transaction-description" style={{ fontSize: 'var(--font-size-base)' }}>
-                  {tx.description}
+                  {tx.description || tx.category?.name || 'Transaction'}
                 </div>
                 <div className="transaction-meta">
                   <span style={{ fontWeight: 600, color: tx.category?.color || 'var(--text-secondary)' }}>
@@ -468,15 +468,16 @@ export default function Transactions() {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="description">Description *</label>
+            <label className="form-label" htmlFor="description">
+              Description <span style={{ color: 'var(--text-tertiary)', fontWeight: 'normal' }}>(Optional)</span>
+            </label>
             <input
               id="description"
               type="text"
               className="form-input"
-              placeholder="e.g. Grocery store run, Salary payout"
+              placeholder="e.g. Grocery store run, Salary payout (optional)"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              required
             />
           </div>
 

@@ -8,6 +8,8 @@ const createTransaction = async (userId, data) => {
   });
   if (!category) throw new ApiError(404, 'Category not found');
 
+  const desc = (data.description && data.description.trim()) || category.name || 'Transaction';
+
   const transaction = await prisma.transaction.create({
     data: {
       userId,
@@ -15,7 +17,7 @@ const createTransaction = async (userId, data) => {
       type: data.type,
       amount: data.amount,
       currency: data.currency || 'INR',
-      description: data.description,
+      description: desc,
       transactionDate: new Date(data.transactionDate),
       notes: data.notes || null,
     },
@@ -79,6 +81,9 @@ const updateTransaction = async (userId, id, data) => {
   }
 
   const updateData = { ...data };
+  if (data.description !== undefined) {
+    updateData.description = (data.description && data.description.trim()) || existing.description || 'Transaction';
+  }
   if (data.transactionDate) {
     updateData.transactionDate = new Date(data.transactionDate);
   }

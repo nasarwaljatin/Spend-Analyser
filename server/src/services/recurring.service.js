@@ -36,6 +36,7 @@ const createRecurring = async (userId, data) => {
 
   const startDate = new Date(data.startDate);
   const nextDueDate = startDate;
+  const desc = (data.description && data.description.trim()) || category.name || 'Recurring Schedule';
 
   const recurring = await prisma.recurringTransaction.create({
     data: {
@@ -44,7 +45,7 @@ const createRecurring = async (userId, data) => {
       type: data.type,
       amount: data.amount,
       currency: data.currency || 'INR',
-      description: data.description,
+      description: desc,
       frequency: data.frequency,
       startDate,
       endDate: data.endDate ? new Date(data.endDate) : null,
@@ -62,6 +63,9 @@ const updateRecurring = async (userId, id, data) => {
   if (!existing) throw new ApiError(404, 'Recurring transaction not found');
 
   const updateData = { ...data };
+  if (data.description !== undefined) {
+    updateData.description = (data.description && data.description.trim()) || existing.description || 'Recurring Schedule';
+  }
   if (data.endDate) updateData.endDate = new Date(data.endDate);
 
   const recurring = await prisma.recurringTransaction.update({

@@ -321,7 +321,7 @@ export default function Dashboard() {
                         {tx.category?.icon || (tx.type === 'earning' ? '💰' : '💸')}
                       </div>
                       <div className="transaction-details">
-                        <div className="transaction-description">{tx.description}</div>
+                        <div className="transaction-description">{tx.description || tx.category?.name || 'Transaction'}</div>
                         <div className="transaction-meta">
                           <span>{tx.category?.name || 'General'}</span>
                           <span>•</span>

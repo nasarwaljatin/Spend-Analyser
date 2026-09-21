@@ -93,8 +93,8 @@ export default function Recurring() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.description || !formData.amount || !formData.categoryId) {
-      addToast({ type: 'warning', message: 'Please complete all required fields' });
+    if (!formData.amount || !formData.categoryId) {
+      addToast({ type: 'warning', message: 'Please select a category and enter an amount' });
       return;
     }
 
@@ -189,7 +189,7 @@ export default function Recurring() {
               <div className="transaction-details">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className="transaction-description" style={{ fontSize: 'var(--font-size-base)' }}>
-                    {rule.description}
+                    {rule.description || rule.category?.name || 'Recurring Schedule'}
                   </span>
                   <span
                     style={{
@@ -307,15 +307,16 @@ export default function Recurring() {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="recDesc">Description *</label>
+            <label className="form-label" htmlFor="recDesc">
+              Description <span style={{ color: 'var(--text-tertiary)', fontWeight: 'normal' }}>(Optional)</span>
+            </label>
             <input
               id="recDesc"
               type="text"
               className="form-input"
-              placeholder="e.g. Netflix Subscription, Apartment Rent"
+              placeholder="e.g. Netflix Subscription, Apartment Rent (optional)"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              required
             />
           </div>
 
