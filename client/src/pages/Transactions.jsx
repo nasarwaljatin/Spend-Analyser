@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   IoAddOutline,
@@ -142,6 +142,7 @@ export default function Transactions() {
       }
       setIsModalOpen(false);
       fetchTransactions(pagination.page);
+      fetchCategories();
     } catch (err) {
       addToast({
         type: 'error',
@@ -156,6 +157,7 @@ export default function Transactions() {
       await transactionService.delete(id);
       addToast({ type: 'success', message: 'Transaction deleted' });
       fetchTransactions(pagination.page);
+      fetchCategories();
     } catch (err) {
       addToast({ type: 'error', message: 'Failed to delete transaction' });
     }
@@ -179,7 +181,16 @@ export default function Transactions() {
     addToast({ type: 'success', message: 'Exported transactions to Excel!' });
   };
 
-  const availableCategories = categories.filter((c) => c.type === formData.type);
+  const availableCategories = useMemo(() => {
+    return [...categories]
+      .filter((c) => c.type === formData.type)
+      .sort((a, b) => {
+        const countA = a._count?.transactions || 0;
+        const countB = b._count?.transactions || 0;
+        if (countB !== countA) return countB - countA;
+        return a.name.localeCompare(b.name);
+      });
+  }, [categories, formData.type]);
 
   return (
     <div className="page-content">

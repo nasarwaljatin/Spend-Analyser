@@ -7,10 +7,17 @@ const getCategories = async (userId, type) => {
 
   const categories = await prisma.category.findMany({
     where,
-    orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
     include: {
       _count: { select: { transactions: true } },
     },
+  });
+
+  // Sort by number of times chosen (transaction usage count) descending, then alphabetically by name
+  categories.sort((a, b) => {
+    const countA = a._count?.transactions || 0;
+    const countB = b._count?.transactions || 0;
+    if (countB !== countA) return countB - countA;
+    return a.name.localeCompare(b.name);
   });
 
   return categories;

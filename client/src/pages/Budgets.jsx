@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   IoAddOutline,
   IoPencilOutline,
@@ -55,6 +55,15 @@ export default function Budgets() {
       setLoading(false);
     }
   };
+
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => {
+      const countA = a._count?.transactions || 0;
+      const countB = b._count?.transactions || 0;
+      if (countB !== countA) return countB - countA;
+      return a.name.localeCompare(b.name);
+    });
+  }, [categories]);
 
   const openCreateModal = () => {
     setEditingId(null);
@@ -257,7 +266,7 @@ export default function Budgets() {
               required
             >
               <option value="">Select Spend Category</option>
-              {categories.map((c) => (
+              {sortedCategories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.icon} {c.name}
                 </option>
