@@ -40,29 +40,42 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
+          const email = profile.emails?.[0]?.value?.toLowerCase();
+          if (!email) {
+            return done(null, false, { message: 'No email found from Google account' });
+          }
+
           let user = await prisma.user.findFirst({
             where: { provider: 'google', providerId: profile.id },
           });
+
           if (!user) {
             // Check if email already exists
             const existingUser = await prisma.user.findUnique({
-              where: { email: profile.emails[0].value },
+              where: { email },
             });
+
             if (existingUser) {
-              return done(null, false, {
-                message: 'Email already registered with another method',
+              user = await prisma.user.update({
+                where: { id: existingUser.id },
+                data: {
+                  provider: 'google',
+                  providerId: profile.id,
+                  avatarUrl: existingUser.avatarUrl || profile.photos?.[0]?.value,
+                },
               });
+            } else {
+              user = await prisma.user.create({
+                data: {
+                  email,
+                  name: profile.displayName || email.split('@')[0],
+                  avatarUrl: profile.photos?.[0]?.value,
+                  provider: 'google',
+                  providerId: profile.id,
+                },
+              });
+              await seedCategoriesForUser(user.id);
             }
-            user = await prisma.user.create({
-              data: {
-                email: profile.emails[0].value,
-                name: profile.displayName,
-                avatarUrl: profile.photos?.[0]?.value,
-                provider: 'google',
-                providerId: profile.id,
-              },
-            });
-            await seedCategoriesForUser(user.id);
           }
           return done(null, user);
         } catch (err) {
@@ -85,30 +98,37 @@ if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
+          const email = (profile.emails?.[0]?.value || `${profile.username}@github.noemail`).toLowerCase();
           let user = await prisma.user.findFirst({
             where: { provider: 'github', providerId: profile.id.toString() },
           });
+
           if (!user) {
-            const email =
-              profile.emails?.[0]?.value || `${profile.username}@github.noemail`;
             const existingUser = await prisma.user.findUnique({
               where: { email },
             });
+
             if (existingUser) {
-              return done(null, false, {
-                message: 'Email already registered with another method',
+              user = await prisma.user.update({
+                where: { id: existingUser.id },
+                data: {
+                  provider: 'github',
+                  providerId: profile.id.toString(),
+                  avatarUrl: existingUser.avatarUrl || profile.photos?.[0]?.value,
+                },
               });
+            } else {
+              user = await prisma.user.create({
+                data: {
+                  email,
+                  name: profile.displayName || profile.username || email.split('@')[0],
+                  avatarUrl: profile.photos?.[0]?.value,
+                  provider: 'github',
+                  providerId: profile.id.toString(),
+                },
+              });
+              await seedCategoriesForUser(user.id);
             }
-            user = await prisma.user.create({
-              data: {
-                email,
-                name: profile.displayName || profile.username,
-                avatarUrl: profile.photos?.[0]?.value,
-                provider: 'github',
-                providerId: profile.id.toString(),
-              },
-            });
-            await seedCategoriesForUser(user.id);
           }
           return done(null, user);
         } catch (err) {

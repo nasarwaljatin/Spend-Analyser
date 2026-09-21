@@ -12,6 +12,9 @@ require('./config/passport');
 
 const app = express();
 
+// Trust reverse proxy headers (Render, Vercel, Heroku, Nginx)
+app.set('trust proxy', 1);
+
 // Security & parsing middleware
 app.use(helmet());
 app.use(configureCors(env.CLIENT_URL));

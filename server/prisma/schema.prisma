@@ -3,12 +3,12 @@ generator client {
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id                    String                 @id @default(auto()) @map("_id") @db.ObjectId
+  id                    String                 @id @default(uuid())
   email                 String                 @unique
   passwordHash          String?                @map("password_hash")
   name                  String
@@ -29,8 +29,8 @@ model User {
 }
 
 model Category {
-  id          String        @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String        @map("user_id") @db.ObjectId
+  id          String        @id @default(uuid())
+  userId      String        @map("user_id")
   name        String
   type        String        // "spend" | "earning"
   icon        String        @default("💰")
@@ -48,11 +48,11 @@ model Category {
 }
 
 model Transaction {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId          String   @map("user_id") @db.ObjectId
-  categoryId      String   @map("category_id") @db.ObjectId
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  categoryId      String   @map("category_id")
   type            String   // "spend" | "earning"
-  amount          Float
+  amount          Decimal
   currency        String   @default("INR")
   description     String
   transactionDate DateTime @map("transaction_date")
@@ -71,15 +71,15 @@ model Transaction {
 }
 
 model Budget {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId          String   @map("user_id") @db.ObjectId
-  categoryId      String   @map("category_id") @db.ObjectId
-  limitAmount     Float    @map("limit_amount")
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  categoryId      String   @map("category_id")
+  limitAmount     Decimal  @map("limit_amount")
   period          String   // "monthly" | "yearly"
   month           Int?
   year            Int
   alertEnabled    Boolean  @default(true) @map("alert_enabled")
-  alertThreshold  Float    @default(0.80) @map("alert_threshold")
+  alertThreshold  Decimal  @default(0.80) @map("alert_threshold")
   createdAt       DateTime @default(now()) @map("created_at")
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -90,11 +90,11 @@ model Budget {
 }
 
 model RecurringTransaction {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String    @map("user_id") @db.ObjectId
-  categoryId  String    @map("category_id") @db.ObjectId
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  categoryId  String    @map("category_id")
   type        String    // "spend" | "earning"
-  amount      Float
+  amount      Decimal
   currency    String    @default("INR")
   description String
   frequency   String    // "daily" | "weekly" | "monthly" | "yearly"

@@ -1,16 +1,27 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { IoMailOutline, IoLockClosedOutline, IoLogoGoogle, IoLogoGithub } from 'react-icons/io5';
 import useAuthStore from '../store/authStore';
 import useToastStore from '../store/toastStore';
 
 export default function Login() {
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuthStore();
   const { addToast } = useToastStore();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      addToast({
+        type: 'error',
+        message: decodeURIComponent(errorParam),
+      });
+    }
+  }, [searchParams, addToast]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

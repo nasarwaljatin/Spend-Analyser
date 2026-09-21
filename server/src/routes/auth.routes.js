@@ -23,11 +23,19 @@ router.get('/google', (req, res, next) => {
   passport.authenticate('google', { scope: ['profile', 'email'], session: false })(req, res, next);
 });
 
-router.get(
-  '/google/callback',
-  passport.authenticate('google', { session: false, failureRedirect: '/login' }),
-  authController.oauthCallback
-);
+router.get('/google/callback', (req, res, next) => {
+  passport.authenticate('google', { session: false }, (err, user, info) => {
+    if (err) {
+      return res.redirect(`${env.CLIENT_URL}/login?error=${encodeURIComponent(err.message || 'Google authentication error')}`);
+    }
+    if (!user) {
+      const msg = info?.message || 'Google authentication failed';
+      return res.redirect(`${env.CLIENT_URL}/login?error=${encodeURIComponent(msg)}`);
+    }
+    req.user = user;
+    return authController.oauthCallback(req, res);
+  })(req, res, next);
+});
 
 router.get('/github', (req, res, next) => {
   if (!env.GITHUB_CLIENT_ID || !env.GITHUB_CLIENT_SECRET) {
@@ -38,11 +46,19 @@ router.get('/github', (req, res, next) => {
   passport.authenticate('github', { scope: ['user:email'], session: false })(req, res, next);
 });
 
-router.get(
-  '/github/callback',
-  passport.authenticate('github', { session: false, failureRedirect: '/login' }),
-  authController.oauthCallback
-);
+router.get('/github/callback', (req, res, next) => {
+  passport.authenticate('github', { session: false }, (err, user, info) => {
+    if (err) {
+      return res.redirect(`${env.CLIENT_URL}/login?error=${encodeURIComponent(err.message || 'GitHub authentication error')}`);
+    }
+    if (!user) {
+      const msg = info?.message || 'GitHub authentication failed';
+      return res.redirect(`${env.CLIENT_URL}/login?error=${encodeURIComponent(msg)}`);
+    }
+    req.user = user;
+    return authController.oauthCallback(req, res);
+  })(req, res, next);
+});
 
 // Protected routes
 router.get('/me', authenticate, authController.getMe);
