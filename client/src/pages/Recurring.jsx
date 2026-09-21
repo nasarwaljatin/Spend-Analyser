@@ -98,12 +98,17 @@ export default function Recurring() {
       return;
     }
 
+    const payload = {
+      ...formData,
+      amount: Number(formData.amount),
+    };
+
     try {
       if (editingId) {
-        await recurringService.update(editingId, formData);
+        await recurringService.update(editingId, payload);
         addToast({ type: 'success', message: 'Recurring transaction updated!' });
       } else {
-        await recurringService.create(formData);
+        await recurringService.create(payload);
         addToast({ type: 'success', message: 'Recurring schedule created!' });
       }
       setIsModalOpen(false);

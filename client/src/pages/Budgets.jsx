@@ -96,12 +96,19 @@ export default function Budgets() {
       return;
     }
 
+    const payload = {
+      ...formData,
+      limitAmount: Number(formData.limitAmount),
+      year: new Date().getFullYear(),
+      month: formData.period === 'monthly' ? new Date().getMonth() + 1 : null,
+    };
+
     try {
       if (editingId) {
-        await budgetService.update(editingId, formData);
+        await budgetService.update(editingId, payload);
         addToast({ type: 'success', message: 'Budget updated successfully!' });
       } else {
-        await budgetService.create(formData);
+        await budgetService.create(payload);
         addToast({ type: 'success', message: 'Budget created successfully!' });
       }
       setIsModalOpen(false);

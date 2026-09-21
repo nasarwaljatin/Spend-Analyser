@@ -140,12 +140,17 @@ export default function Transactions() {
       return;
     }
 
+    const payload = {
+      ...formData,
+      amount: Number(formData.amount),
+    };
+
     try {
       if (editingId) {
-        await transactionService.update(editingId, formData);
+        await transactionService.update(editingId, payload);
         addToast({ type: 'success', message: 'Transaction updated!' });
       } else {
-        await transactionService.create(formData);
+        await transactionService.create(payload);
         addToast({ type: 'success', message: 'Transaction created!' });
       }
       setIsModalOpen(false);

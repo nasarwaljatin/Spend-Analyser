@@ -11,8 +11,9 @@ const validate = (schema, source = 'body') => {
         field: issue.path.join('.'),
         message: issue.message,
       }));
+      const firstMessage = errors[0]?.message || 'Validation failed';
       return res.status(400).json({
-        error: 'Validation failed',
+        error: firstMessage,
         details: errors,
       });
     }

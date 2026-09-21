@@ -1,9 +1,9 @@
 const { z } = require('zod');
 
 const createRecurringSchema = z.object({
-  categoryId: z.string().uuid('Invalid category ID'),
+  categoryId: z.string().min(1, 'Category is required'),
   type: z.enum(['spend', 'earning']),
-  amount: z.number().positive('Amount must be positive'),
+  amount: z.coerce.number().positive('Amount must be positive'),
   currency: z.string().length(3).default('INR'),
   description: z.string().max(500).optional().nullable().default(''),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
@@ -18,7 +18,7 @@ const createRecurringSchema = z.object({
 });
 
 const updateRecurringSchema = z.object({
-  amount: z.number().positive().optional(),
+  amount: z.coerce.number().positive().optional(),
   description: z.string().max(500).optional().nullable(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'yearly']).optional(),
   endDate: z

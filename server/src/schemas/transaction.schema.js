@@ -1,9 +1,9 @@
 const { z } = require('zod');
 
 const createTransactionSchema = z.object({
-  categoryId: z.string().uuid('Invalid category ID'),
+  categoryId: z.string().min(1, 'Category is required'),
   type: z.enum(['spend', 'earning'], { required_error: 'Type must be spend or earning' }),
-  amount: z
+  amount: z.coerce
     .number({ required_error: 'Amount is required' })
     .positive('Amount must be positive')
     .max(999999999999, 'Amount too large'),
@@ -21,7 +21,7 @@ const transactionQuerySchema = z.object({
   page: z.string().optional(),
   limit: z.string().optional(),
   type: z.enum(['spend', 'earning']).optional(),
-  categoryId: z.string().uuid().optional(),
+  categoryId: z.string().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   search: z.string().optional(),
