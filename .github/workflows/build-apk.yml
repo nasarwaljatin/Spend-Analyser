@@ -43,8 +43,16 @@ jobs:
           cache-dependency-path: client/package-lock.json
 
       # ── 4. Android SDK ────────────────────────────────────────────────────
-      - name: 📱 Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # ubuntu-latest has Android SDK pre-installed; just accept licenses
+      - name: 📱 Accept Android SDK licenses
+        run: yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+      - name: 📱 Install required Android SDK components
+        run: |
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
+            "platform-tools" \
+            "build-tools;34.0.0" \
+            "platforms;android-34"
 
       # ── 5. Install client dependencies ────────────────────────────────────
       - name: 📦 Install dependencies
