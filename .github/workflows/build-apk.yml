@@ -1,0 +1,124 @@
+name: 🤖 Build & Release Android APK
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      # Only rebuild APK when client code changes (saves CI minutes)
+      - 'client/src/**'
+      - 'client/public/**'
+      - 'client/index.html'
+      - 'client/package.json'
+      - 'client/vite.config.js'
+      - 'client/capacitor.config.json'
+      - '.github/workflows/build-apk.yml'
+  workflow_dispatch:  # Allow manual trigger from GitHub UI
+
+jobs:
+  build-apk:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # Needed to create GitHub Releases
+
+    steps:
+      # ── 1. Checkout ───────────────────────────────────────────────────────
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Java (required by Gradle/Android) ──────────────────────────────
+      - name: ☕ Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # ── 3. Node.js ────────────────────────────────────────────────────────
+      - name: 🟢 Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      # ── 4. Android SDK ────────────────────────────────────────────────────
+      - name: 📱 Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      # ── 5. Install client dependencies ────────────────────────────────────
+      - name: 📦 Install dependencies
+        working-directory: client
+        run: npm ci
+
+      # ── 6. Build React web app ────────────────────────────────────────────
+      - name: 🔨 Build React app (Vite)
+        working-directory: client
+        env:
+          # Point the APK to the production backend
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://spend-analyser-api.onrender.com/api' }}
+        run: npm run build
+
+      # ── 7. Capacitor sync ─────────────────────────────────────────────────
+      - name: 🔄 Sync Capacitor Android
+        working-directory: client
+        run: npx cap sync android
+
+      # ── 8. Make Gradle wrapper executable ─────────────────────────────────
+      - name: 🔧 Make gradlew executable
+        working-directory: client/android
+        run: chmod +x gradlew
+
+      # ── 9. Build debug APK ────────────────────────────────────────────────
+      - name: 🏗️ Build debug APK
+        working-directory: client/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      # ── 10. Rename APK ────────────────────────────────────────────────────
+      - name: 📝 Rename APK
+        run: |
+          mkdir -p artifacts
+          cp client/android/app/build/outputs/apk/debug/app-debug.apk artifacts/SpendWise.apk
+          echo "APK_SIZE=$(du -sh artifacts/SpendWise.apk | cut -f1)" >> $GITHUB_ENV
+
+      # ── 11. Upload APK as build artifact (for inspection) ─────────────────
+      - name: 📤 Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpendWise-APK
+          path: artifacts/SpendWise.apk
+          retention-days: 30
+
+      # ── 12. Get short commit SHA ───────────────────────────────────────────
+      - name: 🏷️ Get version info
+        id: version
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      # ── 13. Create / update GitHub Release ────────────────────────────────
+      - name: 🚀 Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: "SpendWise Android APK — Latest Build"
+          body: |
+            ## 📱 SpendWise Android App
+
+            **Build:** `${{ steps.version.outputs.sha_short }}` · **Date:** ${{ steps.version.outputs.date }}
+
+            ### Installation Instructions
+            1. Download `SpendWise.apk` below
+            2. On your Android phone: Settings → Security → **Allow Unknown Sources** (or "Install unknown apps")
+            3. Open the downloaded file and tap **Install**
+
+            ### Requirements
+            - Android 7.0 (API 24) or higher
+            - Internet connection (connects to SpendWise backend)
+
+            > ⚠️ This is a **debug build** — safe to install, not signed with a release key.
+          files: artifacts/SpendWise.apk
+          make_latest: true
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

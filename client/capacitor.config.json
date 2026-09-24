@@ -1,0 +1,30 @@
+{
+  "appId": "com.spendwise.app",
+  "appName": "SpendWise",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false,
+    "buildOptions": {
+      "keystorePath": "release-keystore.jks",
+      "keystoreAlias": "spendwise-key"
+    }
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#0a0a1a",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "Dark",
+      "backgroundColor": "#0a0a1a"
+    }
+  }
+}

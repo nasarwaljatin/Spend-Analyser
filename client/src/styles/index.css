@@ -1171,3 +1171,530 @@ a {
 .animate-in:nth-child(4) { animation-delay: 240ms; }
 .animate-in:nth-child(5) { animation-delay: 320ms; }
 .animate-in:nth-child(6) { animation-delay: 400ms; }
+
+/* ═══════════════════════════════════════════════
+   AUTH DOWNLOAD BANNER (Login Page)
+   ═══════════════════════════════════════════════ */
+.auth-download-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08));
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: all var(--transition-base);
+  cursor: pointer;
+}
+.auth-download-banner:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.14));
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.2);
+}
+.auth-download-banner-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: #fff;
+  flex-shrink: 0;
+}
+.auth-download-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.auth-download-banner-text strong {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.auth-download-banner-text small {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+.auth-download-banner-arrow {
+  color: var(--primary-light);
+  font-size: 1.1rem;
+  transition: transform var(--transition-fast);
+}
+.auth-download-banner:hover .auth-download-banner-arrow {
+  transform: translateX(4px);
+}
+
+/* ═══════════════════════════════════════════════
+   DOWNLOAD PAGE LAYOUT
+   ═══════════════════════════════════════════════ */
+.download-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Animated background blobs */
+.download-bg-blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 0;
+  animation: blobFloat 8s ease-in-out infinite;
+}
+.download-bg-blob-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #6366f1, #8b5cf6);
+  top: -100px;
+  right: -100px;
+  animation-delay: 0s;
+}
+.download-bg-blob-2 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, #3b82f6, #06b6d4);
+  bottom: 100px;
+  left: -80px;
+  animation-delay: 3s;
+}
+@keyframes blobFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-30px) scale(1.05); }
+}
+
+/* Download Nav */
+.download-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-8);
+  background: rgba(10, 10, 26, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-light);
+}
+.download-nav-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.download-nav-btn {
+  font-size: var(--font-size-sm);
+  padding: var(--space-2) var(--space-4);
+}
+
+/* Hero Section */
+.download-hero {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 80px var(--space-8) 60px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+.download-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: var(--primary-light);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-6);
+  animation: fadeInDown 0.6s ease;
+}
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.download-hero-title {
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin-bottom: var(--space-5);
+  animation: fadeInUp 0.6s ease 0.1s both;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.download-hero-gradient {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.download-hero-subtitle {
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: var(--space-10);
+  animation: fadeInUp 0.6s ease 0.2s both;
+}
+
+/* APK Download Card */
+.download-apk-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-5) var(--space-6);
+  max-width: 560px;
+  margin: 0 auto var(--space-5);
+  text-align: left;
+  box-shadow: var(--shadow-lg), 0 0 40px rgba(99, 102, 241, 0.08);
+  animation: fadeInUp 0.6s ease 0.3s both;
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+.download-apk-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg), 0 0 60px rgba(99, 102, 241, 0.15);
+}
+.download-apk-icon {
+  flex-shrink: 0;
+}
+.download-apk-icon img {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-xl);
+  object-fit: cover;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+.download-apk-info {
+  flex: 1;
+  min-width: 0;
+}
+.download-apk-name {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+}
+.download-apk-meta {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.download-apk-dot {
+  opacity: 0.5;
+}
+.download-apk-badge-row {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.download-apk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--earning-light);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-weight: 500;
+}
+.download-apk-badge-pending {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+.download-apk-btn-unavailable {
+  background: linear-gradient(135deg, #374151, #4b5563) !important;
+  box-shadow: none !important;
+  opacity: 0.75;
+}
+
+
+/* Download Button */
+.download-apk-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: linear-gradient(135deg, var(--primary), #8b5cf6);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-5);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+  flex-shrink: 0;
+}
+.download-apk-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.5);
+}
+.download-apk-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+.download-apk-btn-success {
+  background: linear-gradient(135deg, var(--earning), #059669) !important;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4) !important;
+}
+
+/* Spinner */
+.download-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.download-apk-note {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  animation: fadeInUp 0.6s ease 0.4s both;
+}
+
+/* Features Section */
+.download-features {
+  position: relative;
+  z-index: 1;
+  padding: 60px var(--space-8);
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.download-section-title {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 48px;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+.download-features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+}
+@media (max-width: 768px) {
+  .download-features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .download-features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.download-feature-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  text-align: center;
+  transition: all var(--transition-base);
+}
+.download-feature-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary);
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.15);
+}
+.download-feature-icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-3);
+}
+.download-feature-label {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+.download-feature-desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Install Steps */
+.download-steps {
+  position: relative;
+  z-index: 1;
+  padding: 60px var(--space-8);
+  max-width: 900px;
+  margin: 0 auto;
+}
+.download-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+}
+@media (max-width: 640px) {
+  .download-steps-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.download-step-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  text-align: center;
+  position: relative;
+  transition: all var(--transition-base);
+}
+.download-step-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+.download-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), #8b5cf6);
+  color: #fff;
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  margin-bottom: var(--space-4);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+}
+.download-step-title {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+.download-step-desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Bottom CTA */
+.download-cta {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 60px var(--space-8) 40px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.download-cta h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-3);
+}
+.download-cta p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+  margin-bottom: var(--space-6);
+}
+.download-cta-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+/* Footer */
+.download-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  padding: var(--space-6) var(--space-8);
+  border-top: 1px solid var(--border-light);
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+.download-footer a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+.download-footer a:hover {
+  color: var(--primary-light);
+}
+
+/* btn-outline variant for download page */
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition-base);
+}
+.btn-outline:hover {
+  border-color: var(--primary);
+  color: var(--primary-light);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+/* Responsive adjustments for download nav */
+@media (max-width: 640px) {
+  .download-nav {
+    padding: var(--space-3) var(--space-4);
+  }
+  .download-hero {
+    padding: 50px var(--space-4) 40px;
+  }
+  .download-apk-card {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-4);
+  }
+  .download-apk-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .download-features,
+  .download-steps,
+  .download-cta {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+}

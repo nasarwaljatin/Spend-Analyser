@@ -28,3 +28,18 @@ server/prisma/migrations/**/migration_lock.toml
 
 # Docker volumes
 pgdata/
+
+# Capacitor / Android — keep android/ project, exclude build outputs & secrets
+client/android/.gradle/
+client/android/app/build/
+client/android/build/
+client/android/local.properties
+client/android/.DS_Store
+
+# Keystore — NEVER commit this!
+*.jks
+*.keystore
+
+# APK output files (built by CI, not stored in repo)
+*.apk
+

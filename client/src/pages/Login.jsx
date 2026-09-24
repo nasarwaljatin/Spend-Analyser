@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { IoMailOutline, IoLockClosedOutline, IoLogoGoogle, IoLogoGithub } from 'react-icons/io5';
+import { IoMailOutline, IoLockClosedOutline, IoLogoGoogle, IoLogoGithub, IoLogoAndroid } from 'react-icons/io5';
 import useAuthStore from '../store/authStore';
 import useToastStore from '../store/toastStore';
 
@@ -76,7 +76,7 @@ export default function Login() {
             💳
           </div>
           <h1 className="auth-title">Welcome Back</h1>
-          <p className="auth-subtitle">Sign in to manage your finances & smart analytics</p>
+          <p className="auth-subtitle">Sign in to manage your finances &amp; smart analytics</p>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -164,11 +164,23 @@ export default function Login() {
         </div>
 
         <p style={{ textAlign: 'center', marginTop: '24px', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link to="/register" style={{ fontWeight: 600, color: 'var(--primary-light)' }}>
             Sign up
           </Link>
         </p>
+
+        {/* Android App Download Banner */}
+        <Link to="/download" className="auth-download-banner" id="auth-download-banner">
+          <span className="auth-download-banner-icon">
+            <IoLogoAndroid size={18} />
+          </span>
+          <span className="auth-download-banner-text">
+            <strong>Get the Android App</strong>
+            <small>Download our free APK — no Play Store needed</small>
+          </span>
+          <span className="auth-download-banner-arrow">→</span>
+        </Link>
       </div>
     </div>
   );

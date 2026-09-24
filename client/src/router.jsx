@@ -12,6 +12,7 @@ import Reports from './pages/Reports';
 import Budgets from './pages/Budgets';
 import Recurring from './pages/Recurring';
 import Settings from './pages/Settings';
+import DownloadApp from './pages/DownloadApp';
 
 export const router = createBrowserRouter([
   {
@@ -21,6 +22,10 @@ export const router = createBrowserRouter([
   {
     path: '/register',
     element: <Register />,
+  },
+  {
+    path: '/download',
+    element: <DownloadApp />,
   },
   {
     path: '/auth/callback',
