@@ -102,16 +102,8 @@ git push -u origin main
    | `JWT_REFRESH_SECRET` | `generate-another-long-random-string-67890` | Refresh token secret |
    | `JWT_ACCESS_EXPIRY` | `15m` | Token expiry |
    | `JWT_REFRESH_EXPIRY` | `7d` | Refresh token expiry |
-   | `CLIENT_URL` | `https://your-frontend-name.vercel.app` | *Your Vercel frontend URL (without trailing slash)* |
-   | `OAUTH_CALLBACK_URL` | `https://spend-analyser-api.onrender.com` | *Your Render backend URL (for OAuth callbacks)* |
-   | `GOOGLE_CLIENT_ID` | `...apps.googleusercontent.com` | *(Optional) Google Cloud OAuth Client ID* |
-   | `GOOGLE_CLIENT_SECRET` | `GOCSPX-...` | *(Optional) Google Cloud OAuth Client Secret* |
+   | `CLIENT_URL` | `https://your-frontend-name.vercel.app` | *Leave placeholder for now; update after Step 4* |
    | `EXCHANGE_RATE_API_URL` | `https://open.er-api.com/v6/latest` | Real-time currency exchange rates |
-
-> [!TIP]
-> **Google Cloud Console OAuth Redirect URI**:
-> If using Google Sign-In, go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → Edit your OAuth 2.0 Client ID → Under **Authorized redirect URIs**, add:
-> `https://YOUR_BACKEND.onrender.com/api/auth/google/callback`
 
 5. **Deploy**:
    - Click **"Create Web Service"**.
