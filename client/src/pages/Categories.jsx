@@ -196,48 +196,50 @@ export default function Categories() {
   return (
     <div className="page-content">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 800, margin: 0 }}>Categories</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: '4px' }}>
+      <div className="page-header-row">
+        <div className="page-header-title-group">
+          <h1>Categories</h1>
+          <p>
             Customize, edit, hide, and manage your personalized spending & earning categories
           </p>
         </div>
 
-        <button onClick={openCreateModal} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <IoAddOutline size={20} />
-          <span>Add Category</span>
-        </button>
+        <div className="page-header-actions">
+          <button onClick={openCreateModal} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <IoAddOutline size={20} />
+            <span>Add Category</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs & Controls */}
-      <div className="card" style={{ marginBottom: '24px', padding: '16px' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="card filter-bar-card">
+        <div className="filter-bar-flex">
           {/* Spend / Earning Type Tabs */}
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="filter-chips-group" style={{ flex: 1 }}>
             <button
               className={`filter-chip ${activeTab === 'spend' ? 'active' : ''}`}
               onClick={() => setActiveTab('spend')}
-              style={{ padding: '8px 16px', fontSize: 'var(--font-size-sm)' }}
+              style={{ padding: '8px 16px', fontSize: 'var(--font-size-sm)', flex: 1, minWidth: '140px', textAlign: 'center' }}
             >
               💸 Spend Categories ({totalSpend})
             </button>
             <button
               className={`filter-chip ${activeTab === 'earning' ? 'active' : ''}`}
               onClick={() => setActiveTab('earning')}
-              style={{ padding: '8px 16px', fontSize: 'var(--font-size-sm)' }}
+              style={{ padding: '8px 16px', fontSize: 'var(--font-size-sm)', flex: 1, minWidth: '140px', textAlign: 'center' }}
             >
               💰 Earning Categories ({totalEarning})
             </button>
           </div>
 
           {/* Visibility Status Filter & Search */}
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', gap: '6px', background: 'var(--bg-input)', padding: '4px', borderRadius: 'var(--radius-md)' }}>
+          <div className="filter-selects-group" style={{ flex: 1, justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-input)', padding: '4px', borderRadius: 'var(--radius-md)', flex: 1, justifyContent: 'center' }}>
               <button
                 type="button"
                 className={`btn btn-sm ${statusFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ padding: '4px 10px', fontSize: 'var(--font-size-xs)' }}
+                style={{ padding: '4px 10px', fontSize: 'var(--font-size-xs)', flex: 1 }}
                 onClick={() => setStatusFilter('all')}
               >
                 All
@@ -245,7 +247,7 @@ export default function Categories() {
               <button
                 type="button"
                 className={`btn btn-sm ${statusFilter === 'active' ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ padding: '4px 10px', fontSize: 'var(--font-size-xs)' }}
+                style={{ padding: '4px 10px', fontSize: 'var(--font-size-xs)', flex: 1 }}
                 onClick={() => setStatusFilter('active')}
               >
                 Active
@@ -253,21 +255,22 @@ export default function Categories() {
               <button
                 type="button"
                 className={`btn btn-sm ${statusFilter === 'hidden' ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ padding: '4px 10px', fontSize: 'var(--font-size-xs)' }}
+                style={{ padding: '4px 10px', fontSize: 'var(--font-size-xs)', flex: 1 }}
                 onClick={() => setStatusFilter('hidden')}
               >
                 Hidden {hiddenCount > 0 && `(${hiddenCount})`}
               </button>
             </div>
 
-            <div style={{ position: 'relative', width: '200px' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: '160px' }}>
               <input
                 type="text"
                 className="form-input"
                 placeholder="Search category..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ paddingLeft: '34px', height: '36px', fontSize: 'var(--font-size-sm)' }}
+                style={{ paddingLeft: '34px', height: '38px', fontSize: 'var(--font-size-sm)', width: '100%' }}
+                aria-label="Search category"
               />
               <IoSearchOutline
                 size={16}
@@ -331,30 +334,35 @@ export default function Categories() {
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', gap: '4px' }}>
+              <div className="category-actions">
                 <button
+                  type="button"
                   onClick={() => handleToggleHide(cat)}
                   className="btn btn-ghost btn-sm"
                   title={cat.isHidden ? 'Unhide Category (Make visible in lists)' : 'Hide Category (Keep data, hide from dropdowns)'}
-                  style={{ padding: '6px', color: cat.isHidden ? 'var(--text-tertiary)' : 'var(--text-secondary)' }}
+                  aria-label={cat.isHidden ? 'Unhide Category' : 'Hide Category'}
+                  style={{ color: cat.isHidden ? 'var(--text-tertiary)' : 'var(--text-secondary)' }}
                 >
                   {cat.isHidden ? <IoEyeOffOutline size={18} color="var(--warning)" /> : <IoEyeOutline size={18} />}
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => openEditModal(cat)}
                   className="btn btn-ghost btn-sm"
                   title="Edit Category (Name, Icon, Color, Type)"
-                  style={{ padding: '6px' }}
+                  aria-label="Edit Category"
                 >
                   <IoPencilOutline size={16} />
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => openDeletePrompt(cat)}
                   className="btn btn-ghost btn-sm"
                   title="Delete Category"
-                  style={{ padding: '6px', color: 'var(--spend)' }}
+                  aria-label="Delete Category"
+                  style={{ color: 'var(--spend)' }}
                 >
                   <IoTrashOutline size={16} />
                 </button>
@@ -435,7 +443,7 @@ export default function Categories() {
                 Selected: {formData.icon}
               </span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '6px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(38px, 1fr))', gap: '6px' }}>
               {EMOJI_OPTIONS.map((emoji) => (
                 <button
                   key={emoji}

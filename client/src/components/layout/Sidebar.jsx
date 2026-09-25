@@ -7,6 +7,8 @@ import {
   IoWalletOutline,
   IoRepeatOutline,
   IoSettingsOutline,
+  IoCloseOutline,
+  IoLogoAndroid,
 } from 'react-icons/io5';
 
 const navItems = [
@@ -21,14 +23,25 @@ const navItems = [
 export default function Sidebar({ isOpen, onClose }) {
   return (
     <>
-      {isOpen && <div className="sidebar-overlay" onClick={onClose} style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
-        zIndex: 99, display: 'none',
-      }} />}
-      <aside className={`app-sidebar ${isOpen ? 'open' : ''}`}>
+      <div
+        className={`sidebar-overlay ${isOpen ? 'show' : ''}`}
+        onClick={onClose}
+        aria-hidden={!isOpen}
+      />
+      <aside className={`app-sidebar ${isOpen ? 'open' : ''}`} aria-label="Sidebar Navigation">
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">💰</div>
-          <span className="sidebar-logo-text">SpendWise</span>
+          <div className="sidebar-logo-brand">
+            <div className="sidebar-logo-icon">💰</div>
+            <span className="sidebar-logo-text">SpendWise</span>
+          </div>
+          <button
+            type="button"
+            className="sidebar-close-btn"
+            onClick={onClose}
+            aria-label="Close sidebar"
+          >
+            <IoCloseOutline size={22} />
+          </button>
         </div>
 
         <nav className="sidebar-nav">
@@ -48,7 +61,7 @@ export default function Sidebar({ isOpen, onClose }) {
             </NavLink>
           ))}
 
-          <div className="sidebar-section-label" style={{ marginTop: 'var(--space-4)' }}>Account</div>
+          <div className="sidebar-section-label" style={{ marginTop: 'var(--space-4)' }}>Account & More</div>
           <NavLink
             to="/settings"
             className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
@@ -57,8 +70,18 @@ export default function Sidebar({ isOpen, onClose }) {
             <span className="sidebar-link-icon"><IoSettingsOutline /></span>
             <span>Settings</span>
           </NavLink>
+
+          <NavLink
+            to="/download"
+            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+            onClick={onClose}
+          >
+            <span className="sidebar-link-icon"><IoLogoAndroid /></span>
+            <span>Download APK</span>
+          </NavLink>
         </nav>
       </aside>
     </>
   );
 }
+

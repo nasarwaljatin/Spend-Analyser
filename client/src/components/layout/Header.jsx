@@ -7,60 +7,44 @@ export default function Header({ onMenuToggle }) {
 
   return (
     <header className="app-header">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+      <div className="header-left">
         <button
+          type="button"
           className="btn btn-ghost btn-icon mobile-menu-btn"
           onClick={onMenuToggle}
-          style={{ display: 'none' }}
+          aria-label="Open navigation menu"
         >
-          <IoMenuOutline size={22} />
+          <IoMenuOutline size={24} />
         </button>
-        <div>
-          <h1 style={{
-            fontSize: 'var(--font-size-lg)',
-            fontWeight: 700,
-            letterSpacing: '-0.01em',
-          }}>
-            Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''} 👋
+        <div className="header-title-container">
+          <h1 className="header-greeting">
+            Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''} <span className="header-greeting-wave">👋</span>
           </h1>
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+      <div className="header-right">
         <ThemeToggle />
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--space-2)',
-          padding: 'var(--space-2) var(--space-3)',
-          borderRadius: 'var(--radius-full)',
-          background: 'var(--glass)',
-          border: '1px solid var(--border)',
-        }}>
+        <div className="header-user-badge" title={user?.name || 'User Profile'}>
           {user?.avatarUrl ? (
             <img
               src={user.avatarUrl}
               alt={user.name}
-              style={{ width: 28, height: 28, borderRadius: '50%' }}
+              className="header-avatar-img"
             />
           ) : (
-            <IoPersonCircleOutline size={28} style={{ color: 'var(--text-secondary)' }} />
+            <IoPersonCircleOutline size={26} className="header-avatar-icon" />
           )}
-          <span style={{
-            fontSize: 'var(--font-size-sm)',
-            fontWeight: 600,
-            maxWidth: 120,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
+          <span className="header-user-name">
             {user?.name || 'User'}
           </span>
         </div>
         <button
-          className="btn btn-ghost btn-icon"
+          type="button"
+          className="btn btn-ghost btn-icon header-logout-btn"
           onClick={logout}
           title="Logout"
+          aria-label="Logout"
         >
           <IoLogOutOutline size={20} />
         </button>
@@ -68,3 +52,4 @@ export default function Header({ onMenuToggle }) {
     </header>
   );
 }
+

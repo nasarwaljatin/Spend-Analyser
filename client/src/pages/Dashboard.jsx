@@ -99,22 +99,20 @@ export default function Dashboard() {
   return (
     <div className="page-content">
       {/* Top Controls Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 800, margin: 0 }}>
-            Financial Overview
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: '4px' }}>
+      <div className="page-header-row">
+        <div className="page-header-title-group">
+          <h1>Financial Overview</h1>
+          <p>
             Welcome back, {user?.name || 'User'}! Track your flow and financial health.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div className="page-header-actions">
           <select
             className="form-input form-select"
             value={month}
             onChange={(e) => setMonth(Number(e.target.value))}
-            style={{ width: '140px' }}
+            aria-label="Select month"
           >
             {MONTHS.map((m, idx) => (
               <option key={m} value={idx + 1}>
@@ -127,7 +125,7 @@ export default function Dashboard() {
             className="form-input form-select"
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
-            style={{ width: '100px' }}
+            aria-label="Select year"
           >
             {[year - 2, year - 1, year, year + 1].map((y) => (
               <option key={y} value={y}>
@@ -136,7 +134,7 @@ export default function Dashboard() {
             ))}
           </select>
 
-          <Link to="/transactions?action=new" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Link to="/transactions?action=new" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
             <IoAddCircleOutline size={18} />
             <span>Add Transaction</span>
           </Link>
@@ -298,7 +296,7 @@ export default function Dashboard() {
           </div>
 
           {/* Bottom Section: Recent Transactions & Budgets */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '24px' }}>
             {/* Recent Transactions */}
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>

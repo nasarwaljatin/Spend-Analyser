@@ -172,18 +172,20 @@ export default function Recurring() {
   return (
     <div className="page-content">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 800, margin: 0 }}>Recurring Payments</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: '4px' }}>
+      <div className="page-header-row">
+        <div className="page-header-title-group">
+          <h1>Recurring Payments</h1>
+          <p>
             Automate monthly bills, subscriptions, paychecks, and regular obligations
           </p>
         </div>
 
-        <button onClick={openCreateModal} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <IoAddOutline size={20} />
-          <span>New Recurring Rule</span>
-        </button>
+        <div className="page-header-actions">
+          <button onClick={openCreateModal} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <IoAddOutline size={20} />
+            <span>New Recurring Rule</span>
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -240,34 +242,41 @@ export default function Recurring() {
                 </div>
               </div>
 
-              <div className={`transaction-amount ${rule.type}`} style={{ fontSize: 'var(--font-size-lg)', marginRight: '16px' }}>
+              <div className={`transaction-amount ${rule.type}`}>
                 {rule.type === 'earning' ? '+' : '-'}{formatCurrency(rule.amount, currency)}
               </div>
 
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div className="transaction-actions">
                 <button
+                  type="button"
                   onClick={() => handleToggleActive(rule)}
                   className="btn btn-ghost btn-sm"
                   title={rule.isActive ? 'Pause rule' : 'Resume rule'}
-                  style={{ padding: '6px 10px' }}
+                  aria-label={rule.isActive ? 'Pause rule' : 'Resume rule'}
                 >
-                  {rule.isActive ? <IoPauseOutline size={18} /> : <IoPlayOutline size={18} color="var(--earning)" />}
+                  {rule.isActive ? <IoPauseOutline size={17} /> : <IoPlayOutline size={17} color="var(--earning)" />}
+                  <span>{rule.isActive ? 'Pause' : 'Resume'}</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => openEditModal(rule)}
                   className="btn btn-ghost btn-sm"
                   title="Edit rule"
-                  style={{ padding: '6px 10px' }}
+                  aria-label="Edit rule"
                 >
-                  <IoPencilOutline size={18} />
+                  <IoPencilOutline size={17} />
+                  <span>Edit</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleDelete(rule.id)}
                   className="btn btn-ghost btn-sm"
                   title="Delete rule"
-                  style={{ padding: '6px 10px', color: 'var(--spend)' }}
+                  aria-label="Delete rule"
+                  style={{ color: 'var(--spend)' }}
                 >
-                  <IoTrashOutline size={18} />
+                  <IoTrashOutline size={17} />
+                  <span>Delete</span>
                 </button>
               </div>
             </div>

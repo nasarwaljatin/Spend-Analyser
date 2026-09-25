@@ -105,30 +105,32 @@ export default function Reports() {
   return (
     <div className="page-content">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 800, margin: 0 }}>Analytics & Reports</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: '4px' }}>
+      <div className="page-header-row">
+        <div className="page-header-title-group">
+          <h1>Analytics & Reports</h1>
+          <p>
             Deep dive into your monthly balance, yearly trajectory, and category trends
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div className="page-header-actions">
           {/* Toggle Type */}
-          <div style={{ display: 'flex', background: 'var(--bg-card)', padding: '3px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', background: 'var(--bg-card)', padding: '3px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border)', flexShrink: 0 }}>
             <button
+              type="button"
               className={`filter-chip ${reportType === 'monthly' ? 'active' : ''}`}
               onClick={() => setReportType('monthly')}
-              style={{ border: 'none' }}
+              style={{ border: 'none', padding: '6px 12px' }}
             >
-              Monthly Net
+              Monthly
             </button>
             <button
+              type="button"
               className={`filter-chip ${reportType === 'yearly' ? 'active' : ''}`}
               onClick={() => setReportType('yearly')}
-              style={{ border: 'none' }}
+              style={{ border: 'none', padding: '6px 12px' }}
             >
-              Yearly Net
+              Yearly
             </button>
           </div>
 
@@ -137,7 +139,7 @@ export default function Reports() {
               className="form-input form-select"
               value={month}
               onChange={(e) => setMonth(Number(e.target.value))}
-              style={{ width: '130px', height: '38px' }}
+              aria-label="Select month"
             >
               {MONTHS.map((m, idx) => (
                 <option key={m} value={idx + 1}>
@@ -151,7 +153,7 @@ export default function Reports() {
             className="form-input form-select"
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
-            style={{ width: '95px', height: '38px' }}
+            aria-label="Select year"
           >
             {[year - 2, year - 1, year, year + 1].map((y) => (
               <option key={y} value={y}>
@@ -160,7 +162,12 @@ export default function Reports() {
             ))}
           </select>
 
-          <button onClick={handleExportCSV} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '38px' }}>
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            className="btn btn-secondary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
             <IoDownloadOutline size={18} />
             <span>Export Report</span>
           </button>

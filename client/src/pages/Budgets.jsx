@@ -135,18 +135,20 @@ export default function Budgets() {
   return (
     <div className="page-content">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 800, margin: 0 }}>Category Budgets</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: '4px' }}>
+      <div className="page-header-row">
+        <div className="page-header-title-group">
+          <h1>Category Budgets</h1>
+          <p>
             Set spending ceilings and monitor threshold limits in real time
           </p>
         </div>
 
-        <button onClick={openCreateModal} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <IoAddOutline size={20} />
-          <span>Set Budget</span>
-        </button>
+        <div className="page-header-actions">
+          <button onClick={openCreateModal} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <IoAddOutline size={20} />
+            <span>Set Budget</span>
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -154,7 +156,7 @@ export default function Budgets() {
           <Loader size={48} />
         </div>
       ) : budgets.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
+        <div className="budget-grid">
           {budgets.map((b) => {
             const spent = b.spent || 0;
             const limit = b.limitAmount || 1;
@@ -200,10 +202,24 @@ export default function Budgets() {
                     </div>
 
                     <div style={{ display: 'flex', gap: '4px' }}>
-                      <button onClick={() => openEditModal(b)} className="btn btn-ghost btn-sm" title="Edit Budget">
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(b)}
+                        className="btn btn-ghost btn-sm"
+                        title="Edit Budget"
+                        aria-label="Edit Budget"
+                        style={{ padding: '6px' }}
+                      >
                         <IoPencilOutline size={16} />
                       </button>
-                      <button onClick={() => handleDelete(b.id)} className="btn btn-ghost btn-sm" title="Delete Budget" style={{ color: 'var(--spend)' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(b.id)}
+                        className="btn btn-ghost btn-sm"
+                        title="Delete Budget"
+                        aria-label="Delete Budget"
+                        style={{ padding: '6px', color: 'var(--spend)' }}
+                      >
                         <IoTrashOutline size={16} />
                       </button>
                     </div>

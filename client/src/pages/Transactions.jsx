@@ -224,21 +224,21 @@ export default function Transactions() {
   return (
     <div className="page-content">
       {/* Title & Actions */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 800, margin: 0 }}>Transactions</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', marginTop: '4px' }}>
+      <div className="page-header-row">
+        <div className="page-header-title-group">
+          <h1>Transactions</h1>
+          <p>
             Record, filter, search, and manage your financial cashflow
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button onClick={handleExport} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="page-header-actions">
+          <button onClick={handleExport} className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
             <IoDownloadOutline size={18} />
             <span>Export</span>
           </button>
 
-          <button onClick={openCreateModal} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button onClick={openCreateModal} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
             <IoAddOutline size={20} />
             <span>Add Transaction</span>
           </button>
@@ -246,10 +246,10 @@ export default function Transactions() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="card" style={{ marginBottom: '24px', padding: '16px' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="card filter-bar-card">
+        <div className="filter-bar-flex">
           {/* Type Filter Chips */}
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="filter-chips-group">
             <button
               className={`filter-chip ${typeFilter === '' ? 'active' : ''}`}
               onClick={() => setTypeFilter('')}
@@ -271,7 +271,7 @@ export default function Transactions() {
           </div>
 
           {/* Search Form */}
-          <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px', flex: 1, maxWidth: '380px' }}>
+          <form onSubmit={handleSearchSubmit} className="search-form-group">
             <div style={{ position: 'relative', width: '100%' }}>
               <input
                 type="text"
@@ -292,12 +292,12 @@ export default function Transactions() {
           </form>
 
           {/* Category Dropdown & Sort */}
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div className="filter-selects-group">
             <select
               className="form-input form-select"
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              style={{ height: '40px', width: '160px' }}
+              aria-label="Filter by category"
             >
               <option value="">All Categories</option>
               {categories.map((cat) => (
@@ -315,7 +315,7 @@ export default function Transactions() {
                 setSortBy(by);
                 setSortOrder(ord);
               }}
-              style={{ height: '40px', width: '170px' }}
+              aria-label="Sort transactions"
             >
               <option value="transactionDate-desc">Newest First</option>
               <option value="transactionDate-asc">Oldest First</option>
@@ -364,26 +364,31 @@ export default function Transactions() {
                 </div>
               </div>
 
-              <div className={`transaction-amount ${tx.type}`} style={{ fontSize: 'var(--font-size-lg)', marginRight: '16px' }}>
+              <div className={`transaction-amount ${tx.type}`}>
                 {tx.type === 'earning' ? '+' : '-'}{formatCurrency(tx.amount, currency)}
               </div>
 
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div className="transaction-actions">
                 <button
+                  type="button"
                   onClick={() => openEditModal(tx)}
                   className="btn btn-ghost btn-sm"
                   title="Edit Transaction"
-                  style={{ padding: '6px 10px' }}
+                  aria-label="Edit Transaction"
                 >
-                  <IoPencilOutline size={18} />
+                  <IoPencilOutline size={17} />
+                  <span>Edit</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleDelete(tx.id)}
                   className="btn btn-ghost btn-sm"
                   title="Delete Transaction"
-                  style={{ padding: '6px 10px', color: 'var(--spend)' }}
+                  aria-label="Delete Transaction"
+                  style={{ color: 'var(--spend)' }}
                 >
-                  <IoTrashOutline size={18} />
+                  <IoTrashOutline size={17} />
+                  <span>Delete</span>
                 </button>
               </div>
             </div>
@@ -391,9 +396,9 @@ export default function Transactions() {
 
           {/* Pagination Controls */}
           {pagination.pages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', padding: '0 8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', padding: '0 8px', flexWrap: 'wrap', gap: '12px' }}>
               <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
-                Showing page {pagination.page} of {pagination.pages} ({pagination.total} total items)
+                Showing page {pagination.page} of {pagination.pages} ({pagination.total} items)
               </span>
 
               <div style={{ display: 'flex', gap: '8px' }}>

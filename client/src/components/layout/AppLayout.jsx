@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import MobileBottomNav from './MobileBottomNav';
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -11,10 +12,12 @@ export default function AppLayout() {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="app-main">
         <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="page-content">
+        <main className="app-content-wrapper">
           <Outlet />
         </main>
+        <MobileBottomNav onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
       </div>
     </div>
   );
 }
+
