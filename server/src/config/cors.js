@@ -16,8 +16,13 @@ const configureCors = (clientUrl) => {
         return callback(null, true);
       }
 
-      // Allow localhost in development
-      if (/^http:\/\/localhost(:\d+)?$/.test(origin)) {
+      // Allow localhost in development and Capacitor hybrid apps
+      if (/^https?:\/\/localhost(:\d+)?$/.test(origin) || origin === 'capacitor://localhost' || origin === 'ionic://localhost') {
+        return callback(null, true);
+      }
+
+      // Allow 127.0.0.1 or local network IPs for mobile testing
+      if (/^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin) || /^https?:\/\/192\.168\.\d+\.\d+(:\d+)?$/.test(origin) || /^https?:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/.test(origin)) {
         return callback(null, true);
       }
 

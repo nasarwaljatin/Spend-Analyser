@@ -46,7 +46,8 @@ export default function Register() {
 
   const handleOAuth = (provider) => {
     const rawUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/+$/, '');
-    window.location.href = `${rawUrl}/auth/${provider}`;
+    const currentOrigin = window.location.origin;
+    window.location.href = `${rawUrl}/auth/${provider}?state=${encodeURIComponent(currentOrigin)}`;
   };
 
   return (

@@ -68,8 +68,9 @@ const updateMe = asyncHandler(async (req, res) => {
 const oauthCallback = (req, res) => {
   const tokens = generateTokens(req.user.id);
   res.cookie('refreshToken', tokens.refreshToken, getCookieOptions());
+  const clientUrl = (req.targetClientUrl || env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '');
   // Redirect to frontend with access token
-  res.redirect(`${env.CLIENT_URL}/auth/callback?token=${tokens.accessToken}`);
+  res.redirect(`${clientUrl}/auth/callback?token=${tokens.accessToken}`);
 };
 
 module.exports = { register, login, refresh, logout, getMe, updateMe, oauthCallback };
