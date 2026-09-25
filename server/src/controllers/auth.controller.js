@@ -68,7 +68,10 @@ const updateMe = asyncHandler(async (req, res) => {
 const oauthCallback = (req, res) => {
   const tokens = generateTokens(req.user.id);
   res.cookie('refreshToken', tokens.refreshToken, getCookieOptions());
-  const clientUrl = (req.targetClientUrl || env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '');
+  const clientUrl = (req.targetClientUrl || env.CLIENT_URL || 'https://spend-analyser-six.vercel.app').replace(/\/+$/, '');
+  if (clientUrl.startsWith('spendwise://')) {
+    return res.redirect(`${clientUrl}?token=${tokens.accessToken}`);
+  }
   // Redirect to frontend with access token
   res.redirect(`${clientUrl}/auth/callback?token=${tokens.accessToken}`);
 };

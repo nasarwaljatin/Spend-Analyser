@@ -15,15 +15,18 @@ router.post('/logout', authController.logout);
 
 // Helper to extract and sanitize target client URL from OAuth state
 const getTargetClientUrl = (req) => {
-  const defaultClientUrl = (env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '');
+  const defaultClientUrl = (env.CLIENT_URL || 'https://spend-analyser-six.vercel.app').replace(/\/+$/, '');
   const state = req.query.state;
   if (!state) return defaultClientUrl;
 
   try {
     let decoded = state;
     // Handle base64 encoded state or plain URL
-    if (!state.startsWith('http://') && !state.startsWith('https://')) {
+    if (!state.startsWith('http://') && !state.startsWith('https://') && !state.startsWith('spendwise://')) {
       decoded = Buffer.from(state, 'base64').toString('utf8');
+    }
+    if (decoded.startsWith('spendwise://')) {
+      return decoded.replace(/\/+$/, '');
     }
     if (decoded.startsWith('http://') || decoded.startsWith('https://')) {
       const url = new URL(decoded);

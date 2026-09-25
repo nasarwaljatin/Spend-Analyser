@@ -57,7 +57,7 @@ jobs:
         working-directory: client
         env:
           # Point the APK to the production backend
-          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://spend-analyser-api.onrender.com/api' }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://spend-analyser-8id9.onrender.com/api' }}
         run: npm run build
 
       # ── 7. Capacitor sync ─────────────────────────────────────────────────

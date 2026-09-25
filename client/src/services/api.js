@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const rawApiUrl = import.meta.env.VITE_API_URL || 'https://spend-analyser-8id9.onrender.com/api';
 // Normalize: strip trailing slash and ensure /api prefix
 const cleanUrl = rawApiUrl.replace(/\/+$/, '');
 const API_URL = cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;

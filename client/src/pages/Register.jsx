@@ -45,8 +45,9 @@ export default function Register() {
   };
 
   const handleOAuth = (provider) => {
-    const rawUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/+$/, '');
-    const currentOrigin = window.location.origin;
+    const rawUrl = (import.meta.env.VITE_API_URL || 'https://spend-analyser-8id9.onrender.com/api').replace(/\/+$/, '');
+    const isCapacitor = window.location.origin.includes('localhost') || window.location.protocol === 'capacitor:';
+    const currentOrigin = isCapacitor ? 'spendwise://auth/callback' : window.location.origin;
     window.location.href = `${rawUrl}/auth/${provider}?state=${encodeURIComponent(currentOrigin)}`;
   };
 
