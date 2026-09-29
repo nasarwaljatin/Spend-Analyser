@@ -73,9 +73,13 @@ app.use('/export', exportRoutes);
 app.use('/api/download', downloadRoutes);
 app.use('/download', downloadRoutes);
 
-// Health check (available at /api/health and /health)
-app.get(['/api/health', '/health'], (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Health check (available at root /, /api, /api/health, and /health)
+app.get(['/', '/api', '/api/health', '/health'], (req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'Spend Analyser API is awake and running',
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // 404 handler
