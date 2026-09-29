@@ -29,11 +29,13 @@ export default function AuthCallback() {
       try {
         // Look for token in query params or hash fragment
         let token = searchParams.get('token');
+        let refreshToken = searchParams.get('refreshToken');
         let error = searchParams.get('error');
 
         if (!token && window.location.hash) {
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           token = hashParams.get('token') || hashParams.get('access_token');
+          refreshToken = hashParams.get('refreshToken') || hashParams.get('refresh_token') || refreshToken;
           error = hashParams.get('error') || error;
         }
 
@@ -50,6 +52,9 @@ export default function AuthCallback() {
         if (token) {
           setStatusMessage('Setting up your session...');
           localStorage.setItem('accessToken', token);
+          if (refreshToken) {
+            localStorage.setItem('refreshToken', refreshToken);
+          }
 
           // Verify user session
           await checkAuth();
@@ -72,6 +77,7 @@ export default function AuthCallback() {
         clearTimeout(timeoutId);
         console.error('AuthCallback error:', err);
         localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         addToast({
           type: 'error',
           message: 'Failed to complete authentication. Please try again.',

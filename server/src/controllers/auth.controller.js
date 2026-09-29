@@ -9,7 +9,7 @@ const getCookieOptions = () => ({
   httpOnly: true,
   secure: env.NODE_ENV === 'production',
   sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
 });
 
 const register = asyncHandler(async (req, res) => {
@@ -18,6 +18,7 @@ const register = asyncHandler(async (req, res) => {
   res.status(201).json({
     user: result.user,
     accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
   });
 });
 
@@ -31,21 +32,22 @@ const login = (req, res, next) => {
     res.json({
       user: result.user,
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     });
   })(req, res, next);
 };
 
 const refresh = asyncHandler(async (req, res) => {
-  const token = req.cookies?.refreshToken;
+  const token = req.body?.refreshToken || req.headers['x-refresh-token'] || req.cookies?.refreshToken;
   if (!token) return res.status(401).json({ error: 'Refresh token required' });
 
   try {
     const decoded = verifyRefreshToken(token);
     const tokens = generateTokens(decoded.userId);
     res.cookie('refreshToken', tokens.refreshToken, getCookieOptions());
-    res.json({ accessToken: tokens.accessToken });
+    res.json({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
   } catch {
-    res.status(401).json({ error: 'Invalid refresh token' });
+    res.status(401).json({ error: 'Invalid or expired refresh token' });
   }
 });
 
@@ -70,10 +72,10 @@ const oauthCallback = (req, res) => {
   res.cookie('refreshToken', tokens.refreshToken, getCookieOptions());
   const clientUrl = (req.targetClientUrl || env.CLIENT_URL || 'https://spend-analyser-six.vercel.app').replace(/\/+$/, '');
   if (clientUrl.startsWith('spendwise://')) {
-    return res.redirect(`${clientUrl}?token=${tokens.accessToken}`);
+    return res.redirect(`${clientUrl}?token=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`);
   }
-  // Redirect to frontend with access token
-  res.redirect(`${clientUrl}/auth/callback?token=${tokens.accessToken}`);
+  // Redirect to frontend with access token and refresh token
+  res.redirect(`${clientUrl}/auth/callback?token=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`);
 };
 
 module.exports = { register, login, refresh, logout, getMe, updateMe, oauthCallback };

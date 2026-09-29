@@ -32,8 +32,12 @@ export default function App() {
             try {
               const url = new URL(urlStr);
               const token = url.searchParams.get('token');
+              const refreshToken = url.searchParams.get('refreshToken');
               if (token) {
                 localStorage.setItem('accessToken', token);
+                if (refreshToken) {
+                  localStorage.setItem('refreshToken', refreshToken);
+                }
                 await checkAuth();
                 router.navigate('/');
               }
