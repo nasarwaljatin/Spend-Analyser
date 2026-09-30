@@ -59,6 +59,11 @@ export default function AuthCallback() {
           // Verify user session
           await checkAuth();
 
+          const authState = useAuthStore.getState();
+          if (!authState.isAuthenticated) {
+            throw new Error('Failed to verify user session');
+          }
+
           clearTimeout(timeoutId);
           addToast({
             type: 'success',

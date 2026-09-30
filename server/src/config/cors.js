@@ -31,7 +31,8 @@ const configureCors = (clientUrl) => {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-refresh-token', 'X-Refresh-Token', 'Accept'],
+    exposedHeaders: ['Content-Disposition'],
   });
 };
 

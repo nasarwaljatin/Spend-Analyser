@@ -12,9 +12,15 @@ export default function Register() {
   const [preferredCurrency, setPreferredCurrency] = useState('INR');
   const [loading, setLoading] = useState(false);
 
-  const { register } = useAuthStore();
+  const { register, isAuthenticated } = useAuthStore();
   const { addToast } = useToastStore();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
