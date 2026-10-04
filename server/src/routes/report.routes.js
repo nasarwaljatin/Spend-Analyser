@@ -8,5 +8,7 @@ router.get('/monthly', controller.monthly);
 router.get('/yearly', controller.yearly);
 router.get('/trends', controller.trends);
 router.get('/net-summary', controller.netSummary);
+router.get('/weekly-heatmap', controller.weeklyHeatmap);
+router.get('/category-trend', controller.categoryTrend);
 
 module.exports = router;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ResponsiveContainer,
@@ -14,6 +14,8 @@ import {
   Tooltip,
   Legend,
   CartesianGrid,
+  ComposedChart,
+  Line,
 } from 'recharts';
 import {
   IoTrendingUp,
@@ -23,6 +25,9 @@ import {
   IoAddCircleOutline,
   IoArrowForwardOutline,
   IoAlertCircleOutline,
+  IoFlameOutline,
+  IoArrowUpOutline,
+  IoArrowDownOutline,
 } from 'react-icons/io5';
 import { reportService, budgetService } from '../services/reportService';
 import { transactionService } from '../services/transactionService';
@@ -95,6 +100,13 @@ export default function Dashboard() {
   const savingsRate = earnings > 0 ? Math.max(0, Math.round((netSavings / earnings) * 100)) : 0;
 
   const categoryBreakdown = monthlyData?.categoryBreakdown || [];
+  const topSpends = monthlyData?.topSpends || [];
+
+  // MoM change
+  const prevEarnings = monthlyData?.comparison?.prevMonth?.earnings || 0;
+  const prevSpends = monthlyData?.comparison?.prevMonth?.spends || 0;
+  const earningsChange = monthlyData?.comparison?.changePercent?.earnings || 0;
+  const spendsChange = monthlyData?.comparison?.changePercent?.spends || 0;
 
   return (
     <div className="page-content">
@@ -262,8 +274,8 @@ export default function Dashboard() {
                     <PieChart>
                       <Pie
                         data={categoryBreakdown}
-                        dataKey="amount"
-                        nameKey="categoryName"
+                        dataKey="total"
+                        nameKey="name"
                         cx="50%"
                         cy="50%"
                         innerRadius={60}
@@ -291,6 +303,94 @@ export default function Dashboard() {
                     No spend transactions recorded for this month.
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+
+          {/* NEW: Top 5 Spends + MoM Delta Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '24px', marginBottom: '24px' }}>
+            {/* Top 5 Spends Horizontal Bar */}
+            <div className="card chart-card">
+              <h2 className="chart-title">🔥 Top 5 Largest Expenses</h2>
+              <div style={{ width: '100%', height: 240 }}>
+                {topSpends.length > 0 ? (
+                  <ResponsiveContainer>
+                    <BarChart layout="vertical" data={topSpends} margin={{ left: 0, right: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} horizontal={false} />
+                      <XAxis type="number" stroke="var(--text-tertiary)" fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                      <YAxis
+                        type="category"
+                        dataKey="category"
+                        stroke="var(--text-tertiary)"
+                        fontSize={12}
+                        width={80}
+                        tickFormatter={(v) => v?.length > 10 ? v.slice(0, 10) + '…' : v}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)', borderRadius: '8px' }}
+                        formatter={(val, name, props) => [formatCurrency(val, currency), props.payload.description || 'Amount']}
+                      />
+                      <Bar dataKey="amount" name="Amount" radius={[0, 6, 6, 0]} fill="#ef4444">
+                        {topSpends.map((entry, index) => (
+                          <Cell key={index} fill={COLORS[(index + 3) % COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>
+                    No spend transactions this month.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* MoM Comparison Card */}
+            <div className="card" style={{ padding: '24px' }}>
+              <h2 className="chart-title">📊 vs Last Month</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
+                {/* Earnings delta */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', background: 'var(--earning-bg)', borderRadius: 10, border: '1px solid rgba(16,185,129,0.2)' }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 4 }}>Earnings vs Last Month</div>
+                    <div style={{ fontWeight: 700, color: 'var(--earning)', fontSize: 18 }}>{formatCurrency(earnings, currency)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Prev: {formatCurrency(prevEarnings, currency)}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{
+                      fontSize: 22, fontWeight: 800,
+                      color: earningsChange >= 0 ? 'var(--earning)' : 'var(--spend)'
+                    }}>
+                      {earningsChange >= 0 ? '↑' : '↓'} {Math.abs(earningsChange)}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Spends delta */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', background: 'var(--spend-bg)', borderRadius: 10, border: '1px solid rgba(239,68,68,0.2)' }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 4 }}>Spends vs Last Month</div>
+                    <div style={{ fontWeight: 700, color: 'var(--spend)', fontSize: 18 }}>{formatCurrency(spends, currency)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Prev: {formatCurrency(prevSpends, currency)}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{
+                      fontSize: 22, fontWeight: 800,
+                      color: spendsChange <= 0 ? 'var(--earning)' : 'var(--spend)'
+                    }}>
+                      {spendsChange >= 0 ? '↑' : '↓'} {Math.abs(spendsChange)}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Net delta */}
+                <div style={{ padding: '10px 16px', background: 'var(--savings-bg)', borderRadius: 10, border: '1px solid rgba(59,130,246,0.2)', textAlign: 'center' }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 4 }}>Net Savings This Month</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: netSavings >= 0 ? 'var(--savings)' : 'var(--spend)' }}>
+                    {formatCurrency(netSavings, currency)}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Savings Rate: {savingsRate}%</div>
+                </div>
               </div>
             </div>
           </div>

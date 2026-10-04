@@ -30,4 +30,18 @@ const netSummary = asyncHandler(async (req, res) => {
   res.json(summary);
 });
 
-module.exports = { monthly, yearly, trends, netSummary };
+const weeklyHeatmap = asyncHandler(async (req, res) => {
+  const year = parseInt(req.query.year) || new Date().getFullYear();
+  const month = parseInt(req.query.month) || (new Date().getMonth() + 1);
+  if (month < 1 || month > 12) throw new ApiError(400, 'Valid month (1-12) is required');
+  const data = await reportService.getWeeklyHeatmap(req.user.id, year, month);
+  res.json(data);
+});
+
+const categoryTrend = asyncHandler(async (req, res) => {
+  const months = parseInt(req.query.months) || 6;
+  const data = await reportService.getCategoryTrend(req.user.id, months);
+  res.json(data);
+});
+
+module.exports = { monthly, yearly, trends, netSummary, weeklyHeatmap, categoryTrend };

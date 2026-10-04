@@ -5,6 +5,8 @@ export const reportService = {
   getYearly: (year) => api.get('/reports/yearly', { params: { year } }),
   getTrends: (months = 12) => api.get('/reports/trends', { params: { months } }),
   getNetSummary: (year) => api.get('/reports/net-summary', { params: { year } }),
+  getWeeklyHeatmap: (year, month) => api.get('/reports/weekly-heatmap', { params: { year, month } }),
+  getCategoryTrend: (months = 6) => api.get('/reports/category-trend', { params: { months } }),
 };
 
 export const budgetService = {

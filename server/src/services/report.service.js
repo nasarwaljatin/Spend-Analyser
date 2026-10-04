@@ -287,4 +287,98 @@ const getNetSummary = async (userId, year) => {
   };
 };
 
-module.exports = { getMonthlyReport, getYearlyReport, getTrends, getNetSummary };
+const getWeeklyHeatmap = async (userId, year, month) => {
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0);
+
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      userId,
+      type: 'spend',
+      transactionDate: { gte: startDate, lte: endDate },
+    },
+  });
+
+  const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  // Build a map: dayOfWeek -> { count, total }
+  const heatmap = DAY_NAMES.map((day, i) => ({
+    day,
+    dayIndex: i,
+    total: 0,
+    count: 0,
+  }));
+
+  transactions.forEach((t) => {
+    const dow = t.transactionDate.getDay(); // 0=Sun
+    heatmap[dow].total += Number(t.amount);
+    heatmap[dow].count += 1;
+  });
+
+  return heatmap.map((d) => ({
+    ...d,
+    total: Number(d.total.toFixed(2)),
+    avgPerTx: d.count > 0 ? Number((d.total / d.count).toFixed(2)) : 0,
+  }));
+};
+
+const getCategoryTrend = async (userId, months = 6) => {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setMonth(startDate.getMonth() - months + 1);
+  startDate.setDate(1);
+
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      userId,
+      type: 'spend',
+      transactionDate: { gte: startDate, lte: endDate },
+    },
+    include: { category: { select: { name: true, color: true } } },
+    orderBy: { transactionDate: 'asc' },
+  });
+
+  // Collect unique categories
+  const categorySet = {};
+  transactions.forEach((t) => {
+    if (!categorySet[t.categoryId]) {
+      categorySet[t.categoryId] = {
+        id: t.categoryId,
+        name: t.category.name,
+        color: t.category.color,
+      };
+    }
+  });
+
+  // Build month keys
+  const monthKeys = [];
+  const cursor = new Date(startDate);
+  while (cursor <= endDate) {
+    monthKeys.push(`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`);
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  // Group transactions by month and category
+  const grid = {}; // grid[monthKey][categoryId] = total
+  transactions.forEach((t) => {
+    const key = `${t.transactionDate.getFullYear()}-${String(t.transactionDate.getMonth() + 1).padStart(2, '0')}`;
+    if (!grid[key]) grid[key] = {};
+    if (!grid[key][t.categoryId]) grid[key][t.categoryId] = 0;
+    grid[key][t.categoryId] += Number(t.amount);
+  });
+
+  const result = monthKeys.map((mk) => {
+    const row = { month: mk };
+    Object.values(categorySet).forEach((cat) => {
+      row[cat.name] = Number(((grid[mk] || {})[cat.id] || 0).toFixed(2));
+    });
+    return row;
+  });
+
+  return {
+    months: monthKeys,
+    categories: Object.values(categorySet),
+    data: result,
+  };
+};
+
+module.exports = { getMonthlyReport, getYearlyReport, getTrends, getNetSummary, getWeeklyHeatmap, getCategoryTrend };
