@@ -9,13 +9,15 @@ import {
   Cell,
   AreaChart,
   Area,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   Tooltip,
   Legend,
   CartesianGrid,
   ComposedChart,
-  Line,
+  ReferenceLine,
 } from 'recharts';
 import {
   IoTrendingUp,
@@ -304,6 +306,116 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* Net Savings Line Chart — full width */}
+          <div className="card" style={{ marginBottom: '24px', padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, margin: 0 }}>
+                📈 Net Savings Trend — Last 12 Months
+              </h2>
+              <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>
+                Above line = surplus · Below = deficit
+              </span>
+            </div>
+            <div style={{ width: '100%', height: 280 }}>
+              {trendData.length > 0 ? (
+                <ResponsiveContainer>
+                  <LineChart data={trendData} margin={{ top: 10, right: 24, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} />
+                    <XAxis
+                      dataKey="month"
+                      stroke="var(--text-tertiary)"
+                      fontSize={12}
+                      tick={{ fill: 'var(--text-secondary)' }}
+                    />
+                    <YAxis
+                      stroke="var(--text-tertiary)"
+                      fontSize={12}
+                      tickFormatter={(v) => formatCurrency(v, currency)}
+                      tick={{ fill: 'var(--text-secondary)' }}
+                      width={80}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'var(--bg-card)',
+                        borderColor: 'var(--border)',
+                        borderRadius: '10px',
+                        color: 'var(--text-primary)',
+                        boxShadow: 'var(--shadow-md)',
+                      }}
+                      formatter={(val, name) => [
+                        formatCurrency(val, currency),
+                        name === 'net' ? 'Net Savings' : name === 'earnings' ? 'Earnings' : 'Spends',
+                      ]}
+                      labelStyle={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 4 }}
+                    />
+                    <Legend
+                      formatter={(val) =>
+                        val === 'net' ? 'Net Savings' : val === 'earnings' ? 'Earnings' : 'Spends'
+                      }
+                    />
+                    <ReferenceLine
+                      y={0}
+                      stroke="var(--text-tertiary)"
+                      strokeWidth={1.5}
+                      strokeDasharray="6 3"
+                      label={{
+                        value: 'Break-even',
+                        position: 'insideTopRight',
+                        fill: 'var(--text-tertiary)',
+                        fontSize: 11,
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="earnings"
+                      name="earnings"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      dot={false}
+                      strokeDasharray="5 3"
+                      opacity={0.55}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="spends"
+                      name="spends"
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      dot={false}
+                      strokeDasharray="5 3"
+                      opacity={0.55}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="net"
+                      name="net"
+                      stroke="#6366f1"
+                      strokeWidth={3}
+                      dot={(props) => {
+                        const { cx, cy, payload } = props;
+                        const color = payload.net >= 0 ? '#10b981' : '#ef4444';
+                        return (
+                          <circle
+                            key={`dot-${payload.month}`}
+                            cx={cx} cy={cy} r={5}
+                            fill={color}
+                            stroke="var(--bg-card)"
+                            strokeWidth={2}
+                          />
+                        );
+                      }}
+                      activeDot={{ r: 8, fill: '#6366f1', stroke: 'var(--bg-card)', strokeWidth: 2 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>
+                  No trend data yet. Add transactions across multiple months to see the line graph!
+                </div>
+              )}
             </div>
           </div>
 
