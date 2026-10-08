@@ -17,6 +17,7 @@ import { formatDate, formatTime, formatDateTime, formatDateTimeInput } from '../
 import { exportToExcel } from '../utils/exportToExcel';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
+import AmountInput from '../components/common/AmountInput';
 
 export default function Transactions() {
   const [searchParams] = useSearchParams();
@@ -486,14 +487,12 @@ export default function Transactions() {
 
           <div className="form-group">
             <label className="form-label" htmlFor="amount">Amount ({currency}) *</label>
-            <input
+            <AmountInput
               id="amount"
-              type="number"
-              step="any"
-              className="form-input"
-              placeholder="e.g. 450.00"
               value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              onChange={(val) => setFormData({ ...formData, amount: val })}
+              placeholder="e.g. 450.00"
+              currency={currency}
               required
             />
           </div>

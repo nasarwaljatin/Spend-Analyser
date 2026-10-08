@@ -15,6 +15,7 @@ import { formatCurrency } from '../utils/formatCurrency';
 import { formatDate } from '../utils/formatDate';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
+import AmountInput from '../components/common/AmountInput';
 
 const FREQUENCIES = [
   { value: 'daily', label: 'Daily' },
@@ -356,14 +357,12 @@ export default function Recurring() {
 
           <div className="form-group">
             <label className="form-label" htmlFor="recAmount">Amount ({currency}) *</label>
-            <input
+            <AmountInput
               id="recAmount"
-              type="number"
-              step="any"
-              className="form-input"
-              placeholder="e.g. 649"
               value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              onChange={(val) => setFormData({ ...formData, amount: val })}
+              placeholder="e.g. 649"
+              currency={currency}
               required
             />
           </div>
