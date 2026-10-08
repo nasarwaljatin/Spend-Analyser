@@ -2525,13 +2525,8 @@ a {
   box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
-/* popup */
+/* popup — position:fixed is applied via inline style from the portal */
 .calc-popup {
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 0;
-  z-index: 9999;
-  width: 280px;
   background: var(--bg-modal);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
@@ -2541,10 +2536,12 @@ a {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  /* touch-action: none prevents accidental scroll-dismiss on mobile */
+  touch-action: none;
 }
 
 @keyframes calcSlideIn {
-  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
@@ -2568,9 +2565,7 @@ a {
   word-break: break-all;
   letter-spacing: 0.3px;
 }
-.calc-expression-error {
-  color: var(--spend);
-}
+.calc-expression-error { color: var(--spend); }
 
 .calc-preview {
   font-size: 13px;
@@ -2586,10 +2581,10 @@ a {
 }
 
 .calc-btn {
-  height: 48px;
+  height: 50px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: background var(--transition-fast), transform 80ms;
@@ -2598,8 +2593,10 @@ a {
   justify-content: center;
   font-family: var(--font-family);
   user-select: none;
+  /* Better tap target on mobile */
+  -webkit-tap-highlight-color: transparent;
 }
-.calc-btn:active { transform: scale(0.93); }
+.calc-btn:active { transform: scale(0.9); }
 
 .calc-btn-num {
   background: var(--bg-card);
@@ -2625,7 +2622,7 @@ a {
   background: rgba(245,158,11,0.12);
   color: var(--warning);
   border-color: rgba(245,158,11,0.25);
-  font-size: 17px;
+  font-size: 18px;
 }
 .calc-btn-del:hover { background: rgba(245,158,11,0.22); }
 
@@ -2638,7 +2635,7 @@ a {
 
 .calc-btn-cancel,
 .calc-btn-apply {
-  height: 40px;
+  height: 42px;
   border-radius: var(--radius-md);
   font-size: 13px;
   font-weight: 600;
@@ -2649,6 +2646,7 @@ a {
   justify-content: center;
   gap: 5px;
   font-family: var(--font-family);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .calc-btn-cancel {
@@ -2670,17 +2668,5 @@ a {
   cursor: not-allowed;
 }
 
-/* mobile — shift popup to right if it would overflow */
-@media (max-width: 480px) {
-  .calc-popup {
-    width: 260px;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  @keyframes calcSlideIn {
-    from { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(0.97); }
-    to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-  }
-}
 
 

@@ -1,13 +1,16 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { IoCalculatorOutline, IoCheckmarkOutline, IoCloseOutline } from 'react-icons/io5';
 
 /**
- * AmountInput — a regular number input with an inline popup calculator.
+ * AmountInput — number input with an inline popup calculator.
+ * The popup is rendered via a React Portal so it is never clipped by
+ * a parent's overflow:hidden / overflow-y:auto (e.g. inside a modal).
  *
  * Props:
  *  id, value, onChange, placeholder, currency, required, disabled
  *
- * `onChange` receives a string (the numeric string), matching the native <input> event pattern.
+ * `onChange` receives a string (the numeric result).
  */
 export default function AmountInput({
   id = 'amount',
@@ -18,22 +21,23 @@ export default function AmountInput({
   required = false,
   disabled = false,
 }) {
-  const [open, setOpen] = useState(false);
-  const [expression, setExpression] = useState('');   // current expression string
-  const [preview, setPreview] = useState('');          // evaluated preview
-  const [error, setError] = useState(false);
-  const popupRef = useRef(null);
-  const inputRef = useRef(null);
+  const [open, setOpen]           = useState(false);
+  const [expression, setExpression] = useState('');
+  const [preview, setPreview]     = useState('');
+  const [error, setError]         = useState(false);
+  const [popupStyle, setPopupStyle] = useState({});
 
-  /* ── helpers ─────────────────────────────────────────────── */
+  const triggerRef = useRef(null);   // the 🧮 button
+  const popupRef   = useRef(null);
+
+  /* ── safe evaluator ─────────────────────────────────── */
   const safeEval = (expr) => {
     try {
-      // Only allow digits, operators, dots, parens, spaces
-      if (!/^[\d\s+\-*/().%]+$/.test(expr)) return null;
+      if (!expr || !/^[\d\s+\-*/().%]+$/.test(expr)) return null;
       // eslint-disable-next-line no-new-func
       const result = Function('"use strict"; return (' + expr + ')')();
       if (typeof result !== 'number' || !isFinite(result)) return null;
-      return Math.round(result * 100) / 100;   // round to 2 dp
+      return Math.round(result * 100) / 100;
     } catch {
       return null;
     }
@@ -42,11 +46,36 @@ export default function AmountInput({
   const updatePreview = useCallback((expr) => {
     if (!expr) { setPreview(''); setError(false); return; }
     const r = safeEval(expr);
-    if (r === null) { setError(true); setPreview(''); }
-    else { setError(false); setPreview(String(r)); }
+    if (r === null) { setError(true);  setPreview(''); }
+    else            { setError(false); setPreview(String(r)); }
   }, []);
 
-  /* ── open calc: seed expression from current value ────────── */
+  /* ── position the portal popup near the trigger button ── */
+  const calcPopupPosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const popupW = 280;
+    const popupH = 340; // approx
+    const vpW = window.innerWidth;
+    const vpH = window.innerHeight;
+
+    let left = rect.left;
+    let top  = rect.bottom + 8;
+
+    // Clamp horizontally
+    if (left + popupW > vpW - 8) left = vpW - popupW - 8;
+    if (left < 8) left = 8;
+
+    // If not enough space below, show above
+    if (top + popupH > vpH - 8) {
+      top = rect.top - popupH - 8;
+    }
+    if (top < 8) top = 8;
+
+    setPopupStyle({ position: 'fixed', top, left, width: popupW, zIndex: 99999 });
+  }, []);
+
+  /* ── open ────────────────────────────────────────────── */
   const openCalc = () => {
     const seed = String(value || '');
     setExpression(seed);
@@ -54,8 +83,14 @@ export default function AmountInput({
     setOpen(true);
   };
 
-  /* ── button press logic ────────────────────────────────────── */
-  const handleKey = (key) => {
+  useEffect(() => {
+    if (open) {
+      calcPopupPosition();
+    }
+  }, [open, calcPopupPosition]);
+
+  /* ── button press ────────────────────────────────────── */
+  const handleKey = useCallback((key) => {
     setExpression((prev) => {
       let next;
       if (key === 'DEL') {
@@ -63,7 +98,6 @@ export default function AmountInput({
       } else if (key === 'C') {
         next = '';
       } else if (key === '%') {
-        // append /100
         next = prev + '/100';
       } else {
         next = prev + key;
@@ -71,10 +105,10 @@ export default function AmountInput({
       updatePreview(next);
       return next;
     });
-  };
+  }, [updatePreview]);
 
-  /* ── apply result ──────────────────────────────────────────── */
-  const apply = () => {
+  /* ── apply ───────────────────────────────────────────── */
+  const apply = useCallback(() => {
     const result = safeEval(expression);
     if (result !== null && result > 0) {
       onChange(String(result));
@@ -84,129 +118,159 @@ export default function AmountInput({
     } else {
       setError(true);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expression, value, onChange]);
 
-  /* ── close on outside click ────────────────────────────────── */
+  /* ── close on outside pointer/touch event ────────────── */
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
-      if (popupRef.current && !popupRef.current.contains(e.target) &&
-          inputRef.current && !inputRef.current.contains(e.target)) {
-        setOpen(false);
-      }
+      const target = e.target;
+      if (
+        (popupRef.current   && popupRef.current.contains(target)) ||
+        (triggerRef.current && triggerRef.current.contains(target))
+      ) return;
+      setOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    // pointerdown covers both mouse clicks and touch starts
+    document.addEventListener('pointerdown', handler, { capture: true });
+    return () => document.removeEventListener('pointerdown', handler, { capture: true });
   }, [open]);
 
-  /* ── keyboard support inside popup ────────────────────────── */
+  /* ── keyboard shortcuts ──────────────────────────────── */
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
       if (e.key === 'Escape') { setOpen(false); return; }
-      if (e.key === 'Enter') { apply(); return; }
+      if (e.key === 'Enter')  { apply(); return; }
       if (e.key === 'Backspace') { handleKey('DEL'); return; }
       if (/^[\d+\-*/.%()]$/.test(e.key)) { handleKey(e.key); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, expression]);
+  }, [open, apply, handleKey]);
 
-  /* ── layout of buttons ─────────────────────────────────────── */
+  /* ── reposition on scroll / resize ──────────────────── */
+  useEffect(() => {
+    if (!open) return;
+    const reposition = () => calcPopupPosition();
+    window.addEventListener('scroll', reposition, { passive: true, capture: true });
+    window.addEventListener('resize', reposition, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', reposition, { capture: true });
+      window.removeEventListener('resize', reposition);
+    };
+  }, [open, calcPopupPosition]);
+
+  /* ── button layout ───────────────────────────────────── */
   const rows = [
-    [{ label: 'C', key: 'C', variant: 'danger' }, { label: '(', key: '(' }, { label: ')', key: ')' }, { label: '÷', key: '/' }],
-    [{ label: '7', key: '7' }, { label: '8', key: '8' }, { label: '9', key: '9' }, { label: '×', key: '*', variant: 'op' }],
-    [{ label: '4', key: '4' }, { label: '5', key: '5' }, { label: '6', key: '6' }, { label: '−', key: '-', variant: 'op' }],
-    [{ label: '1', key: '1' }, { label: '2', key: '2' }, { label: '3', key: '3' }, { label: '+', key: '+', variant: 'op' }],
-    [{ label: '%', key: '%', variant: 'op' }, { label: '0', key: '0' }, { label: '.', key: '.' }, { label: '⌫', key: 'DEL', variant: 'del' }],
+    [{ label: 'C',  key: 'C',   variant: 'danger' }, { label: '(', key: '(' }, { label: ')', key: ')' }, { label: '÷', key: '/',  variant: 'op' }],
+    [{ label: '7',  key: '7' },  { label: '8', key: '8' }, { label: '9', key: '9' }, { label: '×', key: '*',  variant: 'op' }],
+    [{ label: '4',  key: '4' },  { label: '5', key: '5' }, { label: '6', key: '6' }, { label: '−', key: '-',  variant: 'op' }],
+    [{ label: '1',  key: '1' },  { label: '2', key: '2' }, { label: '3', key: '3' }, { label: '+', key: '+',  variant: 'op' }],
+    [{ label: '%',  key: '%',  variant: 'op' }, { label: '0', key: '0' }, { label: '.', key: '.' }, { label: '⌫', key: 'DEL', variant: 'del' }],
   ];
 
-  return (
-    <div className="calc-wrapper" ref={inputRef}>
-      {/* ── main input row ─────────────────────────── */}
-      <div className="calc-input-row">
-        <input
-          id={id}
-          type="number"
-          step="any"
-          min="0"
-          className="form-input calc-input-field"
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          required={required}
-          disabled={disabled}
-          onFocus={() => !open && undefined}
-        />
-        <button
-          type="button"
-          className={`calc-trigger-btn ${open ? 'active' : ''}`}
-          onClick={openCalc}
-          disabled={disabled}
-          title="Open calculator"
-          aria-label="Open inline calculator"
-        >
-          <IoCalculatorOutline size={18} />
-        </button>
+  /* ── popup markup (rendered in portal) ──────────────── */
+  const popup = open ? createPortal(
+    <div
+      className="calc-popup"
+      ref={popupRef}
+      style={popupStyle}
+      role="dialog"
+      aria-label="Calculator"
+      // Prevent clicks inside from bubbling up and triggering the overlay's onClose
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      {/* Display */}
+      <div className="calc-display">
+        <div className={`calc-expression ${error ? 'calc-expression-error' : ''}`}>
+          {expression || <span style={{ opacity: 0.4 }}>Enter a calculation…</span>}
+        </div>
+        <div className="calc-preview">
+          {error
+            ? <span style={{ color: 'var(--spend)', fontSize: '12px' }}>Invalid expression</span>
+            : preview
+              ? <><span style={{ opacity: 0.5, marginRight: 4 }}>=</span><strong>{preview}</strong></>
+              : null}
+        </div>
       </div>
 
-      {/* ── popup calculator ───────────────────────── */}
-      {open && (
-        <div className="calc-popup" ref={popupRef} role="dialog" aria-label="Calculator">
-          {/* Display */}
-          <div className="calc-display">
-            <div className={`calc-expression ${error ? 'calc-expression-error' : ''}`}>
-              {expression || <span style={{ opacity: 0.4 }}>Enter calculation…</span>}
-            </div>
-            <div className="calc-preview">
-              {error
-                ? <span style={{ color: 'var(--spend)', fontSize: '12px' }}>Invalid expression</span>
-                : preview
-                  ? <><span style={{ opacity: 0.5, marginRight: 4 }}>=</span><strong>{preview}</strong></>
-                  : null}
-            </div>
-          </div>
-
-          {/* Buttons grid */}
-          <div className="calc-grid">
-            {rows.map((row, ri) =>
-              row.map((btn) => (
-                <button
-                  key={`${ri}-${btn.key}`}
-                  type="button"
-                  className={`calc-btn calc-btn-${btn.variant || 'num'}`}
-                  onClick={() => handleKey(btn.key)}
-                  aria-label={btn.label}
-                >
-                  {btn.label}
-                </button>
-              ))
-            )}
-          </div>
-
-          {/* Action row */}
-          <div className="calc-actions">
+      {/* Grid */}
+      <div className="calc-grid">
+        {rows.map((row, ri) =>
+          row.map((btn) => (
             <button
+              key={`${ri}-${btn.key}`}
               type="button"
-              className="calc-btn-cancel"
-              onClick={() => setOpen(false)}
-              aria-label="Cancel calculator"
+              className={`calc-btn calc-btn-${btn.variant || 'num'}`}
+              onPointerDown={(e) => { e.stopPropagation(); handleKey(btn.key); }}
+              aria-label={btn.label}
             >
-              <IoCloseOutline size={16} /> Cancel
+              {btn.label}
             </button>
-            <button
-              type="button"
-              className={`calc-btn-apply ${!preview || error ? 'disabled' : ''}`}
-              onClick={apply}
-              disabled={!preview || error}
-              aria-label="Apply result"
-            >
-              <IoCheckmarkOutline size={16} /> Use {preview || '—'}
-            </button>
-          </div>
+          ))
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="calc-actions">
+        <button
+          type="button"
+          className="calc-btn-cancel"
+          onPointerDown={(e) => { e.stopPropagation(); setOpen(false); }}
+          aria-label="Cancel calculator"
+        >
+          <IoCloseOutline size={16} /> Cancel
+        </button>
+        <button
+          type="button"
+          className={`calc-btn-apply ${!preview || error ? 'disabled' : ''}`}
+          onPointerDown={(e) => { e.stopPropagation(); apply(); }}
+          disabled={!preview || error}
+          aria-label="Apply result"
+        >
+          <IoCheckmarkOutline size={16} /> Use {preview || '—'}
+        </button>
+      </div>
+    </div>,
+    document.body
+  ) : null;
+
+  return (
+    <>
+      <div className="calc-wrapper">
+        {/* Main input row */}
+        <div className="calc-input-row">
+          <input
+            id={id}
+            type="number"
+            inputMode="decimal"
+            step="any"
+            min="0"
+            className="form-input calc-input-field"
+            placeholder={placeholder}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            required={required}
+            disabled={disabled}
+          />
+          <button
+            ref={triggerRef}
+            type="button"
+            className={`calc-trigger-btn ${open ? 'active' : ''}`}
+            onPointerDown={(e) => { e.stopPropagation(); openCalc(); }}
+            disabled={disabled}
+            title="Open calculator"
+            aria-label="Open inline calculator"
+            aria-expanded={open}
+          >
+            <IoCalculatorOutline size={18} />
+          </button>
         </div>
-      )}
-    </div>
+      </div>
+      {popup}
+    </>
   );
 }
