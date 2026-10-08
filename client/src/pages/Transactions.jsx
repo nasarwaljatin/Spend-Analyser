@@ -13,7 +13,7 @@ import { categoryService } from '../services/categoryService';
 import useAuthStore from '../store/authStore';
 import useToastStore from '../store/toastStore';
 import { formatCurrency } from '../utils/formatCurrency';
-import { formatDate } from '../utils/formatDate';
+import { formatDate, formatTime, formatDateTime, formatDateTimeInput } from '../utils/formatDate';
 import { exportToExcel } from '../utils/exportToExcel';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
@@ -44,7 +44,7 @@ export default function Transactions() {
     amount: '',
     categoryId: '',
     description: '',
-    transactionDate: new Date().toISOString().split('T')[0],
+    transactionDate: formatDateTimeInput(new Date()),
     notes: '',
   });
 
@@ -119,7 +119,7 @@ export default function Transactions() {
       amount: '',
       categoryId: defaultCat?.id || '',
       description: '',
-      transactionDate: new Date().toISOString().split('T')[0],
+      transactionDate: formatDateTimeInput(new Date()),
       notes: '',
     });
     setIsModalOpen(true);
@@ -132,7 +132,7 @@ export default function Transactions() {
       amount: tx.amount,
       categoryId: tx.categoryId,
       description: tx.description,
-      transactionDate: new Date(tx.transactionDate).toISOString().split('T')[0],
+      transactionDate: formatDateTimeInput(tx.transactionDate),
       notes: tx.notes || '',
     });
     setIsModalOpen(true);
@@ -148,6 +148,7 @@ export default function Transactions() {
     const payload = {
       ...formData,
       amount: Number(formData.amount),
+      transactionDate: new Date(formData.transactionDate).toISOString(),
     };
 
     try {
@@ -188,6 +189,7 @@ export default function Transactions() {
     }
     const exportData = transactions.map((t) => ({
       Date: formatDate(t.transactionDate),
+      Time: formatTime(t.transactionDate),
       Type: t.type.toUpperCase(),
       Description: t.description,
       Category: t.category?.name || 'Uncategorized',
@@ -354,7 +356,7 @@ export default function Transactions() {
                     {tx.category?.name || 'Uncategorized'}
                   </span>
                   <span>•</span>
-                  <span>{formatDate(tx.transactionDate)}</span>
+                  <span>{formatDateTime(tx.transactionDate)}</span>
                   {tx.notes && (
                     <>
                       <span>•</span>
@@ -529,10 +531,10 @@ export default function Transactions() {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="date">Date *</label>
+            <label className="form-label" htmlFor="date">Date &amp; Time *</label>
             <input
               id="date"
-              type="date"
+              type="datetime-local"
               className="form-input"
               value={formData.transactionDate}
               onChange={(e) => setFormData({ ...formData, transactionDate: e.target.value })}

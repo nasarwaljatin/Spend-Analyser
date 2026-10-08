@@ -18,7 +18,7 @@ const createTransaction = async (userId, data) => {
       amount: data.amount,
       currency: data.currency || 'INR',
       description: desc,
-      transactionDate: new Date(data.transactionDate),
+      transactionDate: data.transactionDate ? new Date(data.transactionDate) : new Date(),
       notes: data.notes || null,
     },
     include: { category: { select: { name: true, icon: true, color: true } } },

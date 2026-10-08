@@ -35,7 +35,7 @@ import { reportService, budgetService } from '../services/reportService';
 import { transactionService } from '../services/transactionService';
 import useAuthStore from '../store/authStore';
 import { formatCurrency } from '../utils/formatCurrency';
-import { formatDate } from '../utils/formatDate';
+import { formatDate, formatDateTime } from '../utils/formatDate';
 import Loader from '../components/common/Loader';
 
 const MONTHS = [
@@ -536,7 +536,7 @@ export default function Dashboard() {
                         <div className="transaction-meta">
                           <span>{tx.category?.name || 'General'}</span>
                           <span>•</span>
-                          <span>{formatDate(tx.transactionDate)}</span>
+                          <span>{formatDateTime(tx.transactionDate)}</span>
                         </div>
                       </div>
                       <div className={`transaction-amount ${tx.type}`}>

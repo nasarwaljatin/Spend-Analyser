@@ -131,7 +131,7 @@ const processDueTransactions = async () => {
         amount: recurring.amount,
         currency: recurring.currency,
         description: recurring.description,
-        transactionDate: today,
+        transactionDate: new Date(),
         isRecurring: true,
       },
     });
