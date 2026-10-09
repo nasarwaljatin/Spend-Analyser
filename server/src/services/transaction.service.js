@@ -105,10 +105,52 @@ const deleteTransaction = async (userId, id) => {
   return { message: 'Transaction deleted successfully' };
 };
 
+const bulkDeleteTransactions = async (userId, ids) => {
+  if (!ids || ids.length === 0) return { count: 0, message: 'No transactions selected' };
+
+  const result = await prisma.transaction.deleteMany({
+    where: {
+      id: { in: ids },
+      userId,
+    },
+  });
+
+  return {
+    count: result.count,
+    message: `Successfully deleted ${result.count} transaction(s)`,
+  };
+};
+
+const bulkUpdateCategory = async (userId, ids, categoryId) => {
+  if (!ids || ids.length === 0) return { count: 0, message: 'No transactions selected' };
+
+  const category = await prisma.category.findFirst({
+    where: { id: categoryId, userId },
+  });
+  if (!category) throw new ApiError(404, 'Category not found');
+
+  const result = await prisma.transaction.updateMany({
+    where: {
+      id: { in: ids },
+      userId,
+    },
+    data: {
+      categoryId,
+    },
+  });
+
+  return {
+    count: result.count,
+    message: `Successfully updated ${result.count} transaction(s)`,
+  };
+};
+
 module.exports = {
   createTransaction,
   getTransactions,
   getTransactionById,
   updateTransaction,
   deleteTransaction,
+  bulkDeleteTransactions,
+  bulkUpdateCategory,
 };

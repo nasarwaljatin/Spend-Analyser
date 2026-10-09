@@ -29,4 +29,19 @@ const transactionQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).optional(),
 });
 
-module.exports = { createTransactionSchema, updateTransactionSchema, transactionQuerySchema };
+const bulkDeleteTransactionsSchema = z.object({
+  ids: z.array(z.string().min(1, 'Invalid transaction ID')).min(1, 'At least one transaction ID is required'),
+});
+
+const bulkUpdateCategorySchema = z.object({
+  ids: z.array(z.string().min(1, 'Invalid transaction ID')).min(1, 'At least one transaction ID is required'),
+  categoryId: z.string().min(1, 'Target category is required'),
+});
+
+module.exports = {
+  createTransactionSchema,
+  updateTransactionSchema,
+  transactionQuerySchema,
+  bulkDeleteTransactionsSchema,
+  bulkUpdateCategorySchema,
+};

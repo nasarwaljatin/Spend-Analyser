@@ -30,4 +30,24 @@ const remove = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
-module.exports = { create, getAll, getById, update, remove };
+const bulkRemove = asyncHandler(async (req, res) => {
+  const { ids } = req.body;
+  const result = await transactionService.bulkDeleteTransactions(req.user.id, ids);
+  res.json(result);
+});
+
+const bulkUpdateCategory = asyncHandler(async (req, res) => {
+  const { ids, categoryId } = req.body;
+  const result = await transactionService.bulkUpdateCategory(req.user.id, ids, categoryId);
+  res.json(result);
+});
+
+module.exports = {
+  create,
+  getAll,
+  getById,
+  update,
+  remove,
+  bulkRemove,
+  bulkUpdateCategory,
+};

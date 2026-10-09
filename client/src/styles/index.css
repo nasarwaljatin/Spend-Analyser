@@ -884,6 +884,193 @@ a {
 }
 
 /* ═══════════════════════════════════════════════
+   TRANSACTION SELECTION & BULK ACTIONS
+   ═══════════════════════════════════════════════ */
+.transaction-item.selected {
+  border-color: var(--primary) !important;
+  background: rgba(99, 102, 241, 0.08) !important;
+  box-shadow: 0 0 0 1px var(--primary-glow);
+}
+
+.transaction-checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.custom-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 19px;
+  height: 19px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.custom-checkbox:hover {
+  border-color: var(--primary-light);
+}
+
+.custom-checkbox:focus-visible {
+  box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+.custom-checkbox:checked {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.custom-checkbox:checked::after {
+  content: '';
+  width: 5px;
+  height: 9px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  margin-top: -2px;
+}
+
+.custom-checkbox:indeterminate {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.custom-checkbox:indeterminate::after {
+  content: '';
+  width: 9px;
+  height: 2px;
+  background: #ffffff;
+  border-radius: 1px;
+}
+
+/* List Header Toolbar */
+.transactions-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  font-size: var(--font-size-sm);
+}
+
+.transactions-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.select-all-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.select-all-label:hover {
+  color: var(--text-primary);
+}
+
+/* Bulk Floating/Sticky Action Bar */
+.bulk-actions-banner {
+  background: var(--bg-card);
+  border: 1.5px solid var(--primary);
+  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.4), 0 0 18px -2px var(--primary-glow);
+  border-radius: var(--radius-xl);
+  padding: 12px 18px;
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  position: sticky;
+  top: 72px;
+  z-index: 35;
+  backdrop-filter: blur(16px);
+  animation: fadeInDown 0.25s ease-out;
+}
+
+.bulk-info-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.bulk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 5px 12px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.bulk-stats-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.bulk-stat-pill {
+  font-size: var(--font-size-xs);
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bulk-stat-pill.spend {
+  background: var(--spend-bg);
+  color: var(--spend-light);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.bulk-stat-pill.earning {
+  background: var(--earning-bg);
+  color: var(--earning-light);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.bulk-stat-pill.net {
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.bulk-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════════
    CATEGORY CARDS
    ═══════════════════════════════════════════════ */
 .category-grid {
@@ -1560,13 +1747,37 @@ a {
   /* Transaction Items on Mobile */
   .transaction-item {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto auto 1fr auto;
     grid-template-areas:
-      "icon details amount"
-      "actions actions actions";
+      "check icon details amount"
+      "actions actions actions actions";
     row-gap: var(--space-2);
     column-gap: var(--space-3);
     padding: var(--space-3) var(--space-4);
+  }
+
+  .transaction-checkbox-wrapper {
+    grid-area: check;
+    align-self: center;
+  }
+
+  .bulk-actions-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
+
+  .bulk-buttons-group {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+
+  .bulk-buttons-group .btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .transaction-icon {

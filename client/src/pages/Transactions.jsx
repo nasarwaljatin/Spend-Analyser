@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   IoAddOutline,
@@ -7,6 +7,9 @@ import {
   IoPencilOutline,
   IoDownloadOutline,
   IoSwapVerticalOutline,
+  IoFolderOutline,
+  IoCheckmarkDoneOutline,
+  IoCloseOutline,
 } from 'react-icons/io5';
 import { transactionService } from '../services/transactionService';
 import { categoryService } from '../services/categoryService';
@@ -37,7 +40,7 @@ export default function Transactions() {
   const [sortBy, setSortBy] = useState('transactionDate');
   const [sortOrder, setSortOrder] = useState('desc');
 
-  // Modal State
+  // Single Transaction Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
@@ -48,6 +51,14 @@ export default function Transactions() {
     transactionDate: formatDateTimeInput(new Date()),
     notes: '',
   });
+
+  // Bulk Selection State
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [isBulkCategoryModalOpen, setIsBulkCategoryModalOpen] = useState(false);
+  const [bulkTargetCategoryId, setBulkTargetCategoryId] = useState('');
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const selectAllRef = useRef(null);
 
   useEffect(() => {
     fetchCategories();
@@ -176,6 +187,7 @@ export default function Transactions() {
     try {
       await transactionService.delete(id);
       addToast({ type: 'success', message: 'Transaction deleted' });
+      setSelectedIds((prev) => prev.filter((item) => item !== id));
       fetchTransactions(pagination.page);
       fetchCategories();
     } catch {
@@ -200,6 +212,144 @@ export default function Transactions() {
     }));
     exportToExcel(exportData, `transactions-${new Date().toISOString().split('T')[0]}`);
     addToast({ type: 'success', message: 'Exported transactions to Excel!' });
+  };
+
+  // Bulk Selection Logic
+  const allPageSelected =
+    transactions.length > 0 && transactions.every((tx) => selectedIds.includes(tx.id));
+  const somePageSelected =
+    transactions.some((tx) => selectedIds.includes(tx.id)) && !allPageSelected;
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = somePageSelected;
+    }
+  }, [somePageSelected]);
+
+  const toggleSelect = (id, e) => {
+    if (e) e.stopPropagation();
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (allPageSelected) {
+      const pageIdSet = new Set(transactions.map((t) => t.id));
+      setSelectedIds((prev) => prev.filter((id) => !pageIdSet.has(id)));
+    } else {
+      const pageIds = transactions.map((t) => t.id);
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedIds([]);
+  };
+
+  const selectedTransactions = useMemo(() => {
+    const idSet = new Set(selectedIds);
+    return transactions.filter((t) => idSet.has(t.id));
+  }, [transactions, selectedIds]);
+
+  const selectedStats = useMemo(() => {
+    let totalSpend = 0;
+    let totalEarning = 0;
+    let spendCount = 0;
+    let earningCount = 0;
+
+    selectedTransactions.forEach((tx) => {
+      const amt = Number(tx.amount) || 0;
+      if (tx.type === 'earning') {
+        totalEarning += amt;
+        earningCount++;
+      } else {
+        totalSpend += amt;
+        spendCount++;
+      }
+    });
+
+    const net = totalEarning - totalSpend;
+    return {
+      totalSpend,
+      totalEarning,
+      net,
+      spendCount,
+      earningCount,
+      count: selectedIds.length,
+    };
+  }, [selectedTransactions, selectedIds]);
+
+  const handleBulkExport = () => {
+    if (selectedTransactions.length === 0) {
+      addToast({ type: 'warning', message: 'No transactions selected to export' });
+      return;
+    }
+    const exportData = selectedTransactions.map((t) => ({
+      Date: formatDate(t.transactionDate),
+      Time: formatTime(t.transactionDate),
+      Type: t.type.toUpperCase(),
+      Description: t.description,
+      Category: t.category?.name || 'Uncategorized',
+      Amount: t.amount,
+      Currency: t.currency || currency,
+      Notes: t.notes || '',
+    }));
+    exportToExcel(exportData, `selected-transactions-${new Date().toISOString().split('T')[0]}`);
+    addToast({
+      type: 'success',
+      message: `Exported ${selectedTransactions.length} selected transaction(s) to Excel!`,
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkLoading(true);
+    try {
+      const res = await transactionService.bulkDelete(selectedIds);
+      addToast({
+        type: 'success',
+        message: res.data?.message || `Deleted ${selectedIds.length} transactions successfully!`,
+      });
+      setIsBulkDeleteModalOpen(false);
+      clearSelection();
+      fetchTransactions(pagination.page);
+      fetchCategories();
+    } catch (err) {
+      addToast({
+        type: 'error',
+        message: err.response?.data?.error || 'Failed to delete selected transactions',
+      });
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleBulkUpdateCategory = async (e) => {
+    e.preventDefault();
+    if (!bulkTargetCategoryId) {
+      addToast({ type: 'warning', message: 'Please select a destination category' });
+      return;
+    }
+    setBulkLoading(true);
+    try {
+      const res = await transactionService.bulkUpdateCategory(selectedIds, bulkTargetCategoryId);
+      addToast({
+        type: 'success',
+        message: res.data?.message || `Updated category for ${selectedIds.length} transactions!`,
+      });
+      setIsBulkCategoryModalOpen(false);
+      clearSelection();
+      fetchTransactions(pagination.page);
+      fetchCategories();
+    } catch (err) {
+      addToast({
+        type: 'error',
+        message: err.response?.data?.error || 'Failed to update transaction category',
+      });
+    } finally {
+      setBulkLoading(false);
+    }
   };
 
   const availableCategories = useMemo(() => {
@@ -238,7 +388,7 @@ export default function Transactions() {
         <div className="page-header-actions">
           <button onClick={handleExport} className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
             <IoDownloadOutline size={18} />
-            <span>Export</span>
+            <span>Export All</span>
           </button>
 
           <button onClick={openCreateModal} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
@@ -329,6 +479,89 @@ export default function Transactions() {
         </div>
       </div>
 
+      {/* Floating / Sticky Combined Bulk Actions Bar */}
+      {selectedIds.length > 0 && (
+        <div className="bulk-actions-banner">
+          <div className="bulk-info-group">
+            <div className="bulk-badge">
+              <IoCheckmarkDoneOutline size={15} />
+              <span>{selectedIds.length} Selected</span>
+            </div>
+
+            <div className="bulk-stats-group">
+              {selectedStats.spendCount > 0 && (
+                <span className="bulk-stat-pill spend" title="Combined Spends">
+                  💸 Spends: -{formatCurrency(selectedStats.totalSpend, currency)} ({selectedStats.spendCount})
+                </span>
+              )}
+              {selectedStats.earningCount > 0 && (
+                <span className="bulk-stat-pill earning" title="Combined Earnings">
+                  💰 Income: +{formatCurrency(selectedStats.totalEarning, currency)} ({selectedStats.earningCount})
+                </span>
+              )}
+              <span className="bulk-stat-pill net" title="Combined Net Difference">
+                Net: {selectedStats.net >= 0 ? '+' : ''}{formatCurrency(selectedStats.net, currency)}
+              </span>
+            </div>
+          </div>
+
+          <div className="bulk-buttons-group">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                setBulkTargetCategoryId(categories[0]?.id || '');
+                setIsBulkCategoryModalOpen(true);
+              }}
+              title="Change category for selected transactions"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <IoFolderOutline size={16} />
+              <span>Change Category</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleBulkExport}
+              title="Export selected transactions to Excel"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <IoDownloadOutline size={16} />
+              <span>Export Selected</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setIsBulkDeleteModalOpen(true)}
+              title="Delete all selected transactions"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: 'var(--spend)',
+                borderColor: 'rgba(239, 68, 68, 0.4)',
+              }}
+            >
+              <IoTrashOutline size={16} />
+              <span>Delete Selected</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={clearSelection}
+              title="Deselect all"
+              style={{ color: 'var(--text-tertiary)', padding: '6px' }}
+              aria-label="Clear selection"
+            >
+              <IoCloseOutline size={20} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Transaction List */}
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
@@ -336,66 +569,131 @@ export default function Transactions() {
         </div>
       ) : transactions.length > 0 ? (
         <div className="transaction-list">
-          {transactions.map((tx) => (
-            <div key={tx.id} className="transaction-item" style={{ cursor: 'default' }}>
-              <div
-                className="transaction-icon"
-                style={{
-                  backgroundColor: tx.type === 'earning' ? 'var(--earning-bg)' : 'var(--spend-bg)',
-                  color: tx.type === 'earning' ? 'var(--earning)' : 'var(--spend)',
-                }}
-              >
-                {tx.category?.icon || (tx.type === 'earning' ? '💰' : '💸')}
-              </div>
-
-              <div className="transaction-details">
-                <div className="transaction-description" style={{ fontSize: 'var(--font-size-base)' }}>
-                  {tx.description || tx.category?.name || 'Transaction'}
-                </div>
-                <div className="transaction-meta">
-                  <span style={{ fontWeight: 600, color: tx.category?.color || 'var(--text-secondary)' }}>
-                    {tx.category?.name || 'Uncategorized'}
-                  </span>
-                  <span>•</span>
-                  <span>{formatDateTime(tx.transactionDate)}</span>
-                  {tx.notes && (
-                    <>
-                      <span>•</span>
-                      <span>{tx.notes}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className={`transaction-amount ${tx.type}`}>
-                {tx.type === 'earning' ? '+' : '-'}{formatCurrency(tx.amount, currency)}
-              </div>
-
-              <div className="transaction-actions">
-                <button
-                  type="button"
-                  onClick={() => openEditModal(tx)}
-                  className="btn btn-ghost btn-sm"
-                  title="Edit Transaction"
-                  aria-label="Edit Transaction"
-                >
-                  <IoPencilOutline size={17} />
-                  <span>Edit</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(tx.id)}
-                  className="btn btn-ghost btn-sm"
-                  title="Delete Transaction"
-                  aria-label="Delete Transaction"
-                  style={{ color: 'var(--spend)' }}
-                >
-                  <IoTrashOutline size={17} />
-                  <span>Delete</span>
-                </button>
-              </div>
+          {/* List Selection Toolbar */}
+          <div className="transactions-toolbar">
+            <div className="transactions-toolbar-left">
+              <label className="select-all-label">
+                <input
+                  ref={selectAllRef}
+                  type="checkbox"
+                  className="custom-checkbox"
+                  checked={allPageSelected}
+                  onChange={toggleSelectAll}
+                  aria-label="Select all transactions on this page"
+                />
+                <span>
+                  {allPageSelected
+                    ? `All ${transactions.length} selected on this page`
+                    : selectedIds.length > 0
+                    ? `${selectedIds.length} transaction(s) selected`
+                    : `Select all on page (${transactions.length})`}
+                </span>
+              </label>
             </div>
-          ))}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {selectedIds.length > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={clearSelection}
+                  style={{ color: 'var(--text-secondary)', padding: '2px 8px', fontSize: 'var(--font-size-xs)' }}
+                >
+                  Clear Selection
+                </button>
+              )}
+              <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--font-size-xs)' }}>
+                Page {pagination.page} of {pagination.pages} ({pagination.total} total)
+              </span>
+            </div>
+          </div>
+
+          {/* List Items */}
+          {transactions.map((tx) => {
+            const isSelected = selectedIds.includes(tx.id);
+            return (
+              <div
+                key={tx.id}
+                className={`transaction-item ${isSelected ? 'selected' : ''}`}
+                onClick={(e) => {
+                  if (!e.target.closest('button') && !e.target.closest('input')) {
+                    toggleSelect(tx.id);
+                  }
+                }}
+                style={{ cursor: 'pointer' }}
+              >
+                <div
+                  className="transaction-checkbox-wrapper"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    type="checkbox"
+                    className="custom-checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleSelect(tx.id)}
+                    aria-label={`Select transaction ${tx.description || tx.category?.name}`}
+                  />
+                </div>
+
+                <div
+                  className="transaction-icon"
+                  style={{
+                    backgroundColor: tx.type === 'earning' ? 'var(--earning-bg)' : 'var(--spend-bg)',
+                    color: tx.type === 'earning' ? 'var(--earning)' : 'var(--spend)',
+                  }}
+                >
+                  {tx.category?.icon || (tx.type === 'earning' ? '💰' : '💸')}
+                </div>
+
+                <div className="transaction-details">
+                  <div className="transaction-description" style={{ fontSize: 'var(--font-size-base)' }}>
+                    {tx.description || tx.category?.name || 'Transaction'}
+                  </div>
+                  <div className="transaction-meta">
+                    <span style={{ fontWeight: 600, color: tx.category?.color || 'var(--text-secondary)' }}>
+                      {tx.category?.name || 'Uncategorized'}
+                    </span>
+                    <span>•</span>
+                    <span>{formatDateTime(tx.transactionDate)}</span>
+                    {tx.notes && (
+                      <>
+                        <span>•</span>
+                        <span>{tx.notes}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className={`transaction-amount ${tx.type}`}>
+                  {tx.type === 'earning' ? '+' : '-'}{formatCurrency(tx.amount, currency)}
+                </div>
+
+                <div className="transaction-actions" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => openEditModal(tx)}
+                    className="btn btn-ghost btn-sm"
+                    title="Edit Transaction"
+                    aria-label="Edit Transaction"
+                  >
+                    <IoPencilOutline size={17} />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(tx.id)}
+                    className="btn btn-ghost btn-sm"
+                    title="Delete Transaction"
+                    aria-label="Delete Transaction"
+                    style={{ color: 'var(--spend)' }}
+                  >
+                    <IoTrashOutline size={17} />
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
 
           {/* Pagination Controls */}
           {pagination.pages > 1 && (
@@ -566,6 +864,144 @@ export default function Transactions() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Bulk Change Category Modal */}
+      <Modal
+        isOpen={isBulkCategoryModalOpen}
+        onClose={() => setIsBulkCategoryModalOpen(false)}
+        title={`Change Category (${selectedIds.length} Selected)`}
+      >
+        <form onSubmit={handleBulkUpdateCategory}>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '16px', fontSize: 'var(--font-size-sm)' }}>
+            Select a new category to assign to all <strong>{selectedIds.length}</strong> selected transactions.
+          </p>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="bulkCategory">Select Target Category *</label>
+            <select
+              id="bulkCategory"
+              className="form-input form-select"
+              value={bulkTargetCategoryId}
+              onChange={(e) => setBulkTargetCategoryId(e.target.value)}
+              required
+            >
+              <option value="">-- Choose Category --</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.icon} {c.name} ({c.type === 'earning' ? 'Income' : 'Expense'})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setIsBulkCategoryModalOpen(false)}
+              disabled={bulkLoading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={bulkLoading || !bulkTargetCategoryId}
+            >
+              {bulkLoading ? 'Updating...' : `Apply to ${selectedIds.length} Transactions`}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Bulk Delete Confirmation Modal */}
+      <Modal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        title="Delete Selected Transactions"
+      >
+        <div style={{ textAlign: 'center', padding: '12px 0 20px' }}>
+          <div
+            style={{
+              width: '54px',
+              height: '54px',
+              borderRadius: '50%',
+              background: 'var(--spend-bg)',
+              color: 'var(--spend)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '28px',
+              marginBottom: '16px',
+            }}
+          >
+            <IoTrashOutline />
+          </div>
+          <h3 style={{ fontSize: 'var(--font-size-lg)', marginBottom: '8px' }}>
+            Delete {selectedIds.length} Transaction{selectedIds.length > 1 ? 's' : ''}?
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', maxWidth: '400px', margin: '0 auto 16px' }}>
+            This action cannot be undone. All {selectedIds.length} selected transaction records will be permanently removed.
+          </p>
+
+          <div
+            style={{
+              background: 'var(--bg-input)',
+              padding: '12px 16px',
+              borderRadius: 'var(--radius-md)',
+              display: 'inline-flex',
+              gap: '16px',
+              fontSize: 'var(--font-size-xs)',
+              textAlign: 'left',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+            }}
+          >
+            {selectedStats.spendCount > 0 && (
+              <div>
+                <div style={{ color: 'var(--text-tertiary)' }}>Spends</div>
+                <div style={{ fontWeight: 700, color: 'var(--spend-light)' }}>
+                  -{formatCurrency(selectedStats.totalSpend, currency)} ({selectedStats.spendCount})
+                </div>
+              </div>
+            )}
+            {selectedStats.earningCount > 0 && (
+              <div>
+                <div style={{ color: 'var(--text-tertiary)' }}>Earnings</div>
+                <div style={{ fontWeight: 700, color: 'var(--earning-light)' }}>
+                  +{formatCurrency(selectedStats.totalEarning, currency)} ({selectedStats.earningCount})
+                </div>
+              </div>
+            )}
+            <div>
+              <div style={{ color: 'var(--text-tertiary)' }}>Combined Net</div>
+              <div style={{ fontWeight: 700, color: selectedStats.net >= 0 ? 'var(--earning)' : 'var(--spend)' }}>
+                {selectedStats.net >= 0 ? '+' : ''}{formatCurrency(selectedStats.net, currency)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setIsBulkDeleteModalOpen(false)}
+            disabled={bulkLoading}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="btn"
+            style={{ background: 'var(--spend)', color: '#fff', border: 'none' }}
+            onClick={handleBulkDelete}
+            disabled={bulkLoading}
+          >
+            {bulkLoading ? 'Deleting...' : `Yes, Delete ${selectedIds.length} Items`}
+          </button>
+        </div>
       </Modal>
     </div>
   );
