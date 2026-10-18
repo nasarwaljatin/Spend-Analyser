@@ -2,6 +2,7 @@ const recurringService = require('../services/recurring.service');
 const { asyncHandler } = require('../utils/helpers');
 
 const getAll = asyncHandler(async (req, res) => {
+  await recurringService.processDueForUser(req.user.id);
   const items = await recurringService.getRecurringTransactions(req.user.id);
   res.json(items);
 });

@@ -11,5 +11,6 @@ router.get('/net-summary', controller.netSummary);
 router.get('/weekly-heatmap', controller.weeklyHeatmap);
 router.get('/category-trend', controller.categoryTrend);
 router.get('/insights', controller.insights);
+router.get('/daily', controller.daily);
 
 module.exports = router;

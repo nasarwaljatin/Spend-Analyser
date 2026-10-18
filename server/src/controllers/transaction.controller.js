@@ -1,5 +1,6 @@
 const transactionService = require('../services/transaction.service');
 const { asyncHandler } = require('../utils/helpers');
+const { processDueForUser } = require('../services/recurring.service');
 
 const create = asyncHandler(async (req, res) => {
   const transaction = await transactionService.createTransaction(req.user.id, req.body);
@@ -7,6 +8,7 @@ const create = asyncHandler(async (req, res) => {
 });
 
 const getAll = asyncHandler(async (req, res) => {
+  await processDueForUser(req.user.id);
   const result = await transactionService.getTransactions(req.user.id, req.query);
   res.json(result);
 });

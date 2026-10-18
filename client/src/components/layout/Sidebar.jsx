@@ -11,11 +11,13 @@ import {
   IoLogoAndroid,
   IoBulbOutline,
   IoTrophyOutline,
+  IoCalendarOutline,
 } from 'react-icons/io5';
 
 const navItems = [
   { label: 'Dashboard', path: '/', icon: <IoGridOutline /> },
   { label: 'Transactions', path: '/transactions', icon: <IoSwapHorizontalOutline /> },
+  { label: 'Calendar', path: '/calendar', icon: <IoCalendarOutline /> },
   { label: 'Categories', path: '/categories', icon: <IoFolderOutline /> },
   { label: 'Reports', path: '/reports', icon: <IoBarChartOutline /> },
   { label: 'Insights', path: '/insights', icon: <IoBulbOutline /> },

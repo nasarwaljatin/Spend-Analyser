@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   IoGridOutline,
   IoSwapHorizontalOutline,
-  IoWalletOutline,
+  IoCalendarOutline,
   IoBarChartOutline,
   IoMenuOutline,
 } from 'react-icons/io5';
@@ -28,11 +28,11 @@ export default function MobileBottomNav({ onMenuToggle }) {
       </NavLink>
 
       <NavLink
-        to="/budgets"
+        to="/calendar"
         className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}
       >
-        <span className="mobile-nav-icon"><IoWalletOutline /></span>
-        <span className="mobile-nav-label">Budgets</span>
+        <span className="mobile-nav-icon"><IoCalendarOutline /></span>
+        <span className="mobile-nav-label">Calendar</span>
       </NavLink>
 
       <NavLink

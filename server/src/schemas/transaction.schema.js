@@ -1,6 +1,6 @@
 const { z } = require('zod');
 
-const createTransactionSchema = z.object({
+const baseTransactionSchema = z.object({
   categoryId: z.string().min(1, 'Category is required'),
   type: z.enum(['spend', 'earning'], { required_error: 'Type must be spend or earning' }),
   amount: z.coerce
@@ -15,7 +15,21 @@ const createTransactionSchema = z.object({
   notes: z.string().max(1000).optional().nullable(),
 });
 
-const updateTransactionSchema = createTransactionSchema.partial();
+const recurrenceSchema = z
+  .object({
+    frequency: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
+    endDate: z
+      .string()
+      .refine((val) => !isNaN(Date.parse(val)), { message: 'Invalid end date' })
+      .optional()
+      .nullable(),
+  })
+  .optional()
+  .nullable();
+
+const createTransactionSchema = baseTransactionSchema.extend({ recurrence: recurrenceSchema });
+
+const updateTransactionSchema = baseTransactionSchema.partial();
 
 const transactionQuerySchema = z.object({
   page: z.string().optional(),

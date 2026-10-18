@@ -1,8 +1,18 @@
 const prisma = require('../config/db');
 const { ApiError } = require('../utils/helpers');
 
-const getNextDueDate = (currentDate, frequency) => {
+/**
+ * Advance a due date by one period. `anchorDay` keeps monthly/yearly rules on
+ * their original day (e.g. the 31st) while clamping to shorter months, so
+ * Jan 31 -> Feb 28 -> Mar 31 instead of drifting to Mar 3.
+ */
+const getNextDueDate = (currentDate, frequency, anchorDay) => {
   const d = new Date(currentDate);
+  const day = anchorDay || d.getDate();
+  const clampTo = (year, month) => {
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    d.setFullYear(year, month, Math.min(day, lastDay));
+  };
   switch (frequency) {
     case 'daily':
       d.setDate(d.getDate() + 1);
@@ -11,13 +21,27 @@ const getNextDueDate = (currentDate, frequency) => {
       d.setDate(d.getDate() + 7);
       break;
     case 'monthly':
-      d.setMonth(d.getMonth() + 1);
+      d.setDate(1);
+      clampTo(d.getFullYear(), d.getMonth() + 1);
       break;
     case 'yearly':
-      d.setFullYear(d.getFullYear() + 1);
+      d.setDate(1);
+      clampTo(d.getFullYear() + 1, d.getMonth());
       break;
   }
   return d;
+};
+
+/**
+ * Day-of-month a rule should land on: normally the current due date's day,
+ * but if that was clamped to a month end (e.g. Feb 28 for a rule started on
+ * the 31st), restore the original start day.
+ */
+const getAnchorDay = (startDate, dueDate) => {
+  const start = new Date(startDate).getDate();
+  const due = new Date(dueDate);
+  const lastDay = new Date(due.getFullYear(), due.getMonth() + 1, 0).getDate();
+  return due.getDate() === lastDay && start > due.getDate() ? start : due.getDate();
 };
 
 const getRecurringTransactions = async (userId) => {
@@ -98,55 +122,77 @@ const togglePause = async (userId, id, isActive) => {
   return recurring;
 };
 
-// Called by cron job to process due recurring transactions
-const processDueTransactions = async () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+const MAX_CATCH_UP = 400; // safety cap on occurrences generated per rule per run
 
-  const dueTransactions = await prisma.recurringTransaction.findMany({
+/**
+ * Materialise every occurrence that has come due (catching up on any missed
+ * while the server was asleep). Each transaction is dated on its due date.
+ * Pass a userId to process just that user's rules.
+ */
+const processDueTransactions = async (userId) => {
+  const now = new Date();
+
+  const dueRules = await prisma.recurringTransaction.findMany({
     where: {
+      ...(userId ? { userId } : {}),
       isActive: true,
-      nextDueDate: { lte: today },
+      nextDueDate: { lte: now },
     },
   });
 
   let processedCount = 0;
 
-  for (const recurring of dueTransactions) {
-    // Check if past end date
-    if (recurring.endDate && recurring.endDate < today) {
-      await prisma.recurringTransaction.update({
-        where: { id: recurring.id },
-        data: { isActive: false },
-      });
-      continue;
+  for (const rule of dueRules) {
+    const anchorDay = getAnchorDay(rule.startDate, rule.nextDueDate);
+    let due = new Date(rule.nextDueDate);
+    const occurrences = [];
+
+    while (due <= now && occurrences.length < MAX_CATCH_UP) {
+      if (rule.endDate && due > rule.endDate) break;
+      occurrences.push(new Date(due));
+      due = getNextDueDate(due, rule.frequency, anchorDay);
     }
 
-    // Create the transaction
-    await prisma.transaction.create({
-      data: {
-        userId: recurring.userId,
-        categoryId: recurring.categoryId,
-        type: recurring.type,
-        amount: recurring.amount,
-        currency: recurring.currency,
-        description: recurring.description,
-        transactionDate: new Date(),
-        isRecurring: true,
-      },
-    });
+    if (occurrences.length > 0) {
+      await prisma.transaction.createMany({
+        data: occurrences.map((date) => ({
+          userId: rule.userId,
+          categoryId: rule.categoryId,
+          type: rule.type,
+          amount: rule.amount,
+          currency: rule.currency,
+          description: rule.description,
+          transactionDate: date,
+          isRecurring: true,
+        })),
+      });
+      processedCount += occurrences.length;
+    }
 
-    // Update next due date
-    const nextDue = getNextDueDate(recurring.nextDueDate, recurring.frequency);
+    const finished = rule.endDate && due > rule.endDate;
     await prisma.recurringTransaction.update({
-      where: { id: recurring.id },
-      data: { nextDueDate: nextDue },
+      where: { id: rule.id },
+      data: { nextDueDate: due, ...(finished ? { isActive: false } : {}) },
     });
-
-    processedCount++;
   }
 
   return processedCount;
+};
+
+// Per-user lazy catch-up, throttled so busy pages don't hammer the DB
+const lastUserRun = new Map();
+const USER_THROTTLE_MS = 5 * 60 * 1000;
+
+const processDueForUser = async (userId) => {
+  const last = lastUserRun.get(userId) || 0;
+  if (Date.now() - last < USER_THROTTLE_MS) return 0;
+  lastUserRun.set(userId, Date.now());
+  try {
+    return await processDueTransactions(userId);
+  } catch (err) {
+    console.error('[RECURRING] Catch-up failed:', err.message);
+    return 0;
+  }
 };
 
 module.exports = {
@@ -156,5 +202,6 @@ module.exports = {
   deleteRecurring,
   togglePause,
   processDueTransactions,
+  processDueForUser,
   getNextDueDate,
 };

@@ -1,5 +1,6 @@
 const reportService = require('../services/report.service');
 const { asyncHandler, ApiError } = require('../utils/helpers');
+const { processDueForUser } = require('../services/recurring.service');
 
 const monthly = asyncHandler(async (req, res) => {
   const year = parseInt(req.query.year);
@@ -7,6 +8,7 @@ const monthly = asyncHandler(async (req, res) => {
   if (!year || !month || month < 1 || month > 12) {
     throw new ApiError(400, 'Valid year and month (1-12) are required');
   }
+  await processDueForUser(req.user.id);
   const report = await reportService.getMonthlyReport(req.user.id, year, month);
   res.json(report);
 });
@@ -45,8 +47,24 @@ const categoryTrend = asyncHandler(async (req, res) => {
 });
 
 const insights = asyncHandler(async (req, res) => {
+  await processDueForUser(req.user.id);
   const data = await reportService.getInsights(req.user.id);
   res.json(data);
 });
 
-module.exports = { monthly, yearly, trends, netSummary, weeklyHeatmap, categoryTrend, insights };
+// Raw transactions in a date range; the client groups them by its local day
+const daily = asyncHandler(async (req, res) => {
+  const start = new Date(req.query.start);
+  const end = new Date(req.query.end);
+  if (isNaN(start) || isNaN(end) || end < start) {
+    throw new ApiError(400, 'Valid start and end dates are required');
+  }
+  if (end - start > 62 * 24 * 60 * 60 * 1000) {
+    throw new ApiError(400, 'Range cannot exceed 62 days');
+  }
+  await processDueForUser(req.user.id);
+  const data = await reportService.getDailyTransactions(req.user.id, start, end);
+  res.json(data);
+});
+
+module.exports = { monthly, yearly, trends, netSummary, weeklyHeatmap, categoryTrend, insights, daily };

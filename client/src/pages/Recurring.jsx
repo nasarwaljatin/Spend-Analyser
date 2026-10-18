@@ -15,6 +15,7 @@ import { formatCurrency } from '../utils/formatCurrency';
 import { formatDate } from '../utils/formatDate';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
+import CategoryPicker from '../components/transactions/CategoryPicker';
 import AmountInput from '../components/common/AmountInput';
 
 const FREQUENCIES = [
@@ -368,21 +369,14 @@ export default function Recurring() {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="recCategory">Category *</label>
-            <select
-              id="recCategory"
-              className="form-input form-select"
+            <span className="form-label">Category *</span>
+            <CategoryPicker
+              categories={availableCategories}
+              type={formData.type}
               value={formData.categoryId}
-              onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-              required
-            >
-              <option value="">Select Category</option>
-              {availableCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.icon} {c.name}
-                </option>
-              ))}
-            </select>
+              onChange={(id) => setFormData((prev) => ({ ...prev, categoryId: id }))}
+              onCreated={(cat) => setCategories((prev) => [...prev, cat])}
+            />
           </div>
 
           <div className="form-group">

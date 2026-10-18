@@ -564,4 +564,41 @@ const getInsights = async (userId) => {
   };
 };
 
-module.exports = { getMonthlyReport, getYearlyReport, getTrends, getNetSummary, getWeeklyHeatmap, getCategoryTrend, getInsights };
+const getDailyTransactions = async (userId, start, end) => {
+  const [transactions, recurring] = await Promise.all([
+    prisma.transaction.findMany({
+      where: { userId, transactionDate: { gte: start, lte: end } },
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        description: true,
+        transactionDate: true,
+        isRecurring: true,
+        category: { select: { name: true, icon: true, color: true } },
+      },
+      orderBy: { transactionDate: 'asc' },
+    }),
+    prisma.recurringTransaction.findMany({
+      where: { userId, isActive: true, nextDueDate: { lte: end } },
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        description: true,
+        frequency: true,
+        startDate: true,
+        endDate: true,
+        nextDueDate: true,
+        category: { select: { name: true, icon: true, color: true } },
+      },
+    }),
+  ]);
+
+  return {
+    transactions: transactions.map((t) => ({ ...t, amount: Number(t.amount) })),
+    recurring: recurring.map((r) => ({ ...r, amount: Number(r.amount) })),
+  };
+};
+
+module.exports = { getMonthlyReport, getYearlyReport, getTrends, getNetSummary, getWeeklyHeatmap, getCategoryTrend, getInsights, getDailyTransactions };

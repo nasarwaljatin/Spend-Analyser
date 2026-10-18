@@ -1,5 +1,6 @@
 const prisma = require('../config/db');
 const { ApiError, parsePagination, paginatedResponse } = require('../utils/helpers');
+const { getNextDueDate } = require('./recurring.service');
 
 const createTransaction = async (userId, data) => {
   // Verify category belongs to user
@@ -23,6 +24,29 @@ const createTransaction = async (userId, data) => {
     },
     include: { category: { select: { name: true, icon: true, color: true } } },
   });
+
+  // "Repeat" option: this transaction is the first occurrence, the schedule
+  // picks up from the next one.
+  if (data.recurrence?.frequency) {
+    const firstDate = transaction.transactionDate;
+    const recurring = await prisma.recurringTransaction.create({
+      data: {
+        userId,
+        categoryId: transaction.categoryId,
+        type: transaction.type,
+        amount: transaction.amount,
+        currency: transaction.currency,
+        description: transaction.description,
+        frequency: data.recurrence.frequency,
+        startDate: firstDate,
+        endDate: data.recurrence.endDate ? new Date(data.recurrence.endDate) : null,
+        nextDueDate: getNextDueDate(firstDate, data.recurrence.frequency),
+        isActive: true,
+      },
+    });
+    await prisma.transaction.update({ where: { id: transaction.id }, data: { isRecurring: true } });
+    return { ...transaction, isRecurring: true, recurringId: recurring.id };
+  }
 
   return transaction;
 };

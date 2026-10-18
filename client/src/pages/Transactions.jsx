@@ -23,6 +23,15 @@ import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
 import AmountInput from '../components/common/AmountInput';
 import ImportTransactionsModal from '../components/transactions/ImportTransactionsModal';
+import CategoryPicker from '../components/transactions/CategoryPicker';
+
+const REPEAT_OPTIONS = [
+  { value: '', label: 'Once' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'yearly', label: 'Yearly' },
+];
 
 export default function Transactions() {
   const [searchParams] = useSearchParams();
@@ -52,6 +61,8 @@ export default function Transactions() {
     description: '',
     transactionDate: formatDateTimeInput(new Date()),
     notes: '',
+    repeat: '',
+    repeatEnd: '',
   });
 
   // Bulk Selection State
@@ -69,7 +80,15 @@ export default function Transactions() {
 
   useEffect(() => {
     if (searchParams.get('action') === 'new') {
-      openCreateModal();
+      // ?date=YYYY-MM-DD (from the calendar) pre-fills the day at the current time
+      const dateParam = searchParams.get('date');
+      let preset;
+      if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+        const [y, m, d] = dateParam.split('-').map(Number);
+        const now = new Date();
+        preset = new Date(y, m - 1, d, now.getHours(), now.getMinutes());
+      }
+      openCreateModal(preset);
     }
   }, [searchParams]);
 
@@ -122,7 +141,7 @@ export default function Transactions() {
     fetchTransactions(1);
   };
 
-  const openCreateModal = async () => {
+  const openCreateModal = async (presetDate) => {
     setEditingId(null);
     let cats = categories;
     if (!cats || cats.length === 0) {
@@ -134,8 +153,10 @@ export default function Transactions() {
       amount: '',
       categoryId: defaultCat?.id || '',
       description: '',
-      transactionDate: formatDateTimeInput(new Date()),
+      transactionDate: formatDateTimeInput(presetDate || new Date()),
       notes: '',
+      repeat: '',
+      repeatEnd: '',
     });
     setIsModalOpen(true);
   };
@@ -149,6 +170,8 @@ export default function Transactions() {
       description: tx.description,
       transactionDate: formatDateTimeInput(tx.transactionDate),
       notes: tx.notes || '',
+      repeat: '',
+      repeatEnd: '',
     });
     setIsModalOpen(true);
   };
@@ -160,11 +183,18 @@ export default function Transactions() {
       return;
     }
 
+    const { repeat, repeatEnd, ...fields } = formData;
     const payload = {
-      ...formData,
+      ...fields,
       amount: Number(formData.amount),
       transactionDate: new Date(formData.transactionDate).toISOString(),
     };
+    if (!editingId && repeat) {
+      payload.recurrence = {
+        frequency: repeat,
+        endDate: repeatEnd ? new Date(`${repeatEnd}T23:59:59`).toISOString() : null,
+      };
+    }
 
     try {
       if (editingId) {
@@ -172,7 +202,10 @@ export default function Transactions() {
         addToast({ type: 'success', message: 'Transaction updated!' });
       } else {
         await transactionService.create(payload);
-        addToast({ type: 'success', message: 'Transaction created!' });
+        addToast({
+          type: 'success',
+          message: repeat ? `Transaction recorded — repeats ${repeat}` : 'Transaction created!',
+        });
       }
       setIsModalOpen(false);
       fetchTransactions(pagination.page);
@@ -399,7 +432,7 @@ export default function Transactions() {
             <span>Export All</span>
           </button>
 
-          <button onClick={openCreateModal} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <button onClick={() => openCreateModal()} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
             <IoAddOutline size={20} />
             <span>Add Transaction</span>
           </button>
@@ -736,7 +769,7 @@ export default function Transactions() {
           <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
             Try adjusting your search criteria or add your first transaction.
           </p>
-          <button onClick={openCreateModal} className="btn btn-primary">
+          <button onClick={() => openCreateModal()} className="btn btn-primary">
             + Add Transaction
           </button>
         </div>
@@ -804,21 +837,14 @@ export default function Transactions() {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="category">Category *</label>
-            <select
-              id="category"
-              className="form-input form-select"
+            <span className="form-label">Category *</span>
+            <CategoryPicker
+              categories={availableCategories}
+              type={formData.type}
               value={formData.categoryId}
-              onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-              required
-            >
-              <option value="">Select a Category</option>
-              {availableCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.icon} {c.name}
-                </option>
-              ))}
-            </select>
+              onChange={(id) => setFormData((prev) => ({ ...prev, categoryId: id }))}
+              onCreated={(cat) => setCategories((prev) => [...prev, cat])}
+            />
           </div>
 
           <div className="form-group">
@@ -846,6 +872,45 @@ export default function Transactions() {
               required
             />
           </div>
+
+          {!editingId && (
+            <div className="form-group">
+              <span className="form-label">Repeat</span>
+              <div className="segmented" role="radiogroup" aria-label="Repeat">
+                {REPEAT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value || 'once'}
+                    type="button"
+                    role="radio"
+                    aria-checked={formData.repeat === opt.value}
+                    className={`segmented-btn ${formData.repeat === opt.value ? 'active' : ''}`}
+                    onClick={() => setFormData({ ...formData, repeat: opt.value })}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              {formData.repeat && (
+                <div className="repeat-details">
+                  <span>
+                    Auto-records every {formData.repeat.replace('ly', '').replace('dai', 'day')} from this date.
+                  </span>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Ends
+                    <input
+                      type="date"
+                      className="form-input"
+                      style={{ width: 'auto', padding: '6px 10px' }}
+                      value={formData.repeatEnd}
+                      min={formData.transactionDate.slice(0, 10)}
+                      onChange={(e) => setFormData({ ...formData, repeatEnd: e.target.value })}
+                      aria-label="Repeat end date (optional)"
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label" htmlFor="notes">Notes (Optional)</label>
