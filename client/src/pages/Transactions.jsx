@@ -11,6 +11,8 @@ import {
   IoCheckmarkDoneOutline,
   IoCloseOutline,
   IoCloudUploadOutline,
+  IoChevronBack,
+  IoChevronForward,
 } from 'react-icons/io5';
 import { transactionService } from '../services/transactionService';
 import { categoryService } from '../services/categoryService';
@@ -24,6 +26,59 @@ import Loader from '../components/common/Loader';
 import AmountInput from '../components/common/AmountInput';
 import ImportTransactionsModal from '../components/transactions/ImportTransactionsModal';
 import CategoryPicker from '../components/transactions/CategoryPicker';
+
+const PERIODS = [
+  { value: 'day', label: 'Day' },
+  { value: 'month', label: 'Month' },
+  { value: 'year', label: 'Year' },
+  { value: 'all', label: 'All' },
+];
+const PERIOD_STORAGE_KEY = 'spendwise.txPeriod';
+
+const readStoredPeriod = () => {
+  try {
+    const stored = localStorage.getItem(PERIOD_STORAGE_KEY);
+    return PERIODS.some((p) => p.value === stored) ? stored : 'all';
+  } catch {
+    return 'all';
+  }
+};
+
+/** Local start/end of the period containing `anchor`; null bounds for "all". */
+const getPeriodRange = (period, anchor) => {
+  const y = anchor.getFullYear();
+  const m = anchor.getMonth();
+  const d = anchor.getDate();
+  if (period === 'day') return [new Date(y, m, d), new Date(y, m, d, 23, 59, 59, 999)];
+  if (period === 'month') return [new Date(y, m, 1), new Date(y, m + 1, 0, 23, 59, 59, 999)];
+  if (period === 'year') return [new Date(y, 0, 1), new Date(y, 11, 31, 23, 59, 59, 999)];
+  return [null, null];
+};
+
+const shiftAnchor = (period, anchor, delta) => {
+  const next = new Date(anchor);
+  if (period === 'day') next.setDate(next.getDate() + delta);
+  if (period === 'month') next.setMonth(next.getMonth() + delta, 1);
+  if (period === 'year') next.setFullYear(next.getFullYear() + delta, 0, 1);
+  return next;
+};
+
+const formatPeriodLabel = (period, anchor) => {
+  if (period === 'day') {
+    return anchor.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  if (period === 'month') return anchor.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  if (period === 'year') return String(anchor.getFullYear());
+  return 'All time';
+};
+
+const isCurrentPeriod = (period, anchor) => {
+  const now = new Date();
+  if (period === 'day') return anchor.toDateString() === now.toDateString();
+  if (period === 'month') return anchor.getFullYear() === now.getFullYear() && anchor.getMonth() === now.getMonth();
+  if (period === 'year') return anchor.getFullYear() === now.getFullYear();
+  return true;
+};
 
 const REPEAT_OPTIONS = [
   { value: '', label: 'Once' },
@@ -50,6 +105,11 @@ export default function Transactions() {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('transactionDate');
   const [sortOrder, setSortOrder] = useState('desc');
+
+  // Period view (Day / Month / Year / All) with combined totals
+  const [period, setPeriod] = useState(readStoredPeriod);
+  const [periodAnchor, setPeriodAnchor] = useState(() => new Date());
+  const [periodSummary, setPeriodSummary] = useState(null);
 
   // Single Transaction Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -94,7 +154,23 @@ export default function Transactions() {
 
   useEffect(() => {
     fetchTransactions(pagination.page);
-  }, [typeFilter, categoryFilter, sortBy, sortOrder, pagination.page]);
+  }, [typeFilter, categoryFilter, sortBy, sortOrder, pagination.page, period, periodAnchor]);
+
+  const changePeriod = (next) => {
+    setPeriod(next);
+    setPeriodAnchor(new Date());
+    setPagination((prev) => ({ ...prev, page: 1 }));
+    try {
+      localStorage.setItem(PERIOD_STORAGE_KEY, next);
+    } catch {
+      // storage unavailable (private mode) — keep the in-memory choice
+    }
+  };
+
+  const movePeriod = (delta) => {
+    setPeriodAnchor((prev) => (delta === 0 ? new Date() : shiftAnchor(period, prev, delta)));
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
 
   const fetchCategories = async () => {
     try {
@@ -111,16 +187,20 @@ export default function Transactions() {
   const fetchTransactions = async (page = 1) => {
     setLoading(true);
     try {
-      const params = {
-        page,
-        limit: pagination.limit,
+      const [rangeStart, rangeEnd] = getPeriodRange(period, periodAnchor);
+      const filters = {
         type: typeFilter || undefined,
         categoryId: categoryFilter || undefined,
         search: search || undefined,
-        sortBy,
-        sortOrder,
+        startDate: rangeStart ? rangeStart.toISOString() : undefined,
+        endDate: rangeEnd ? rangeEnd.toISOString() : undefined,
       };
-      const res = await transactionService.getAll(params);
+      const params = { ...filters, page, limit: pagination.limit, sortBy, sortOrder };
+      const [res, summaryRes] = await Promise.all([
+        transactionService.getAll(params),
+        transactionService.getSummary(filters).catch(() => null),
+      ]);
+      setPeriodSummary(summaryRes?.data || null);
       const list = res.data?.transactions || res.data?.data || (Array.isArray(res.data) ? res.data : []);
       const paginationData = res.data?.pagination || { page: 1, limit: 10, total: list.length, pages: 1 };
       if (!paginationData.pages && paginationData.totalPages) {
@@ -436,6 +516,75 @@ export default function Transactions() {
             <IoAddOutline size={20} />
             <span>Add Transaction</span>
           </button>
+        </div>
+      </div>
+
+      {/* Period selector + combined totals */}
+      <div className="card period-card">
+        <div className="period-controls">
+          <div className="segmented" role="radiogroup" aria-label="Group transactions by period">
+            {PERIODS.map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                role="radio"
+                aria-checked={period === p.value}
+                className={`segmented-btn ${period === p.value ? 'active' : ''}`}
+                onClick={() => changePeriod(p.value)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="period-nav">
+            {period !== 'all' && (
+              <button type="button" className="btn btn-ghost btn-icon" onClick={() => movePeriod(-1)} aria-label={`Previous ${period}`}>
+                <IoChevronBack size={18} />
+              </button>
+            )}
+            <span className="period-label">{formatPeriodLabel(period, periodAnchor)}</span>
+            {period !== 'all' && (
+              <button type="button" className="btn btn-ghost btn-icon" onClick={() => movePeriod(1)} aria-label={`Next ${period}`}>
+                <IoChevronForward size={18} />
+              </button>
+            )}
+            {period !== 'all' && !isCurrentPeriod(period, periodAnchor) && (
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => movePeriod(0)}>
+                {period === 'day' ? 'Today' : period === 'month' ? 'This month' : 'This year'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="period-stats">
+          <div className="period-stat">
+            <span className="period-stat-label">Income</span>
+            <span className="period-stat-value" style={{ color: 'var(--earning)' }}>
+              +{formatCurrency(periodSummary?.earning || 0, currency)}
+            </span>
+            <span className="period-stat-sub">{periodSummary?.earningCount || 0} {periodSummary?.earningCount === 1 ? 'entry' : 'entries'}</span>
+          </div>
+          <div className="period-stat">
+            <span className="period-stat-label">Spending</span>
+            <span className="period-stat-value" style={{ color: 'var(--spend)' }}>
+              −{formatCurrency(periodSummary?.spend || 0, currency)}
+            </span>
+            <span className="period-stat-sub">{periodSummary?.spendCount || 0} {periodSummary?.spendCount === 1 ? 'entry' : 'entries'}</span>
+          </div>
+          <div className="period-stat period-stat-net">
+            <span className="period-stat-label">Net</span>
+            <span
+              className="period-stat-value"
+              style={{ color: (periodSummary?.net || 0) >= 0 ? 'var(--earning)' : 'var(--spend)' }}
+            >
+              {(periodSummary?.net || 0) >= 0 ? '+' : '−'}{formatCurrency(Math.abs(periodSummary?.net || 0), currency)}
+            </span>
+            <span className="period-stat-sub">
+              {periodSummary?.count || 0} transaction{periodSummary?.count === 1 ? '' : 's'}
+              {periodSummary?.earning > 0 && ` · ${Math.round((periodSummary.net / periodSummary.earning) * 100)}% saved`}
+            </span>
+          </div>
         </div>
       </div>
 

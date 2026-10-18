@@ -52,7 +52,13 @@ const importMany = asyncHandler(async (req, res) => {
   res.status(201).json(result);
 });
 
+const summary = asyncHandler(async (req, res) => {
+  const result = await transactionService.getTransactionSummary(req.user.id, req.query);
+  res.json(result);
+});
+
 module.exports = {
+  summary,
   importMany,
   create,
   getAll,

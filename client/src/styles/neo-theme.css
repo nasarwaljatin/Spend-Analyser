@@ -836,3 +836,88 @@ h1, h2, h3,
   .cal-stat-value { font-size: var(--font-size-lg); }
   .segmented-btn { padding: 7px 10px; }
 }
+
+/* ═══════════ Transactions period summary ═══════════ */
+.period-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: var(--space-4);
+}
+
+.period-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.period-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.period-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--font-size-lg);
+  min-width: 140px;
+  text-align: center;
+}
+
+.period-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.period-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-input);
+  border: 1px solid var(--border-light);
+}
+
+.period-stat-net {
+  border-color: rgba(124, 92, 255, 0.35);
+  background: linear-gradient(135deg, rgba(124, 92, 255, 0.12), rgba(34, 211, 238, 0.05)), var(--bg-input);
+}
+
+.period-stat-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+
+.period-stat-value {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.period-stat-sub {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 640px) {
+  .period-controls { flex-direction: column; align-items: stretch; }
+  .period-controls .segmented { justify-content: space-between; }
+  .period-nav { justify-content: center; }
+  .period-stats { grid-template-columns: 1fr 1fr; }
+  .period-stat-net { grid-column: 1 / -1; }
+  .period-stat-value { font-size: var(--font-size-lg); }
+}

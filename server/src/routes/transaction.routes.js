@@ -14,6 +14,7 @@ const {
 router.use(authenticate);
 
 router.get('/', validate(transactionQuerySchema, 'query'), controller.getAll);
+router.get('/summary', validate(transactionQuerySchema, 'query'), controller.summary);
 router.post('/bulk-delete', validate(bulkDeleteTransactionsSchema), controller.bulkRemove);
 router.delete('/bulk', validate(bulkDeleteTransactionsSchema), controller.bulkRemove);
 router.post('/import', validate(importTransactionsSchema), controller.importMany);

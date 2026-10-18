@@ -51,9 +51,7 @@ const createTransaction = async (userId, data) => {
   return transaction;
 };
 
-const getTransactions = async (userId, query) => {
-  const { page, limit, skip } = parsePagination(query);
-
+const buildTransactionWhere = (userId, query) => {
   const where = { userId };
 
   if (query.type) where.type = query.type;
@@ -66,6 +64,12 @@ const getTransactions = async (userId, query) => {
   if (query.search) {
     where.description = { contains: query.search, mode: 'insensitive' };
   }
+  return where;
+};
+
+const getTransactions = async (userId, query) => {
+  const { page, limit, skip } = parsePagination(query);
+  const where = buildTransactionWhere(userId, query);
 
   const orderBy = {};
   orderBy[query.sortBy || 'transactionDate'] = query.sortOrder || 'desc';
@@ -225,7 +229,35 @@ const importTransactions = async (userId, rows, { createMissingCategories = true
   };
 };
 
+/** Combined totals for the same filters the list uses (period, type, category, search). */
+const getTransactionSummary = async (userId, query) => {
+  const where = buildTransactionWhere(userId, query);
+  const groups = await prisma.transaction.groupBy({
+    by: ['type'],
+    where,
+    _sum: { amount: true },
+    _count: { _all: true },
+  });
+
+  const totals = { earning: 0, spend: 0, earningCount: 0, spendCount: 0 };
+  groups.forEach((g) => {
+    const key = g.type === 'earning' ? 'earning' : 'spend';
+    totals[key] += Number(g._sum.amount || 0);
+    totals[`${key}Count`] += g._count._all;
+  });
+
+  return {
+    earning: Number(totals.earning.toFixed(2)),
+    spend: Number(totals.spend.toFixed(2)),
+    net: Number((totals.earning - totals.spend).toFixed(2)),
+    earningCount: totals.earningCount,
+    spendCount: totals.spendCount,
+    count: totals.earningCount + totals.spendCount,
+  };
+};
+
 module.exports = {
+  getTransactionSummary,
   importTransactions,
   createTransaction,
   getTransactions,
