@@ -145,7 +145,64 @@ const bulkUpdateCategory = async (userId, ids, categoryId) => {
   };
 };
 
+const FALLBACK_CATEGORY = {
+  spend: { name: 'Other Expenses', icon: '📦', color: '#64748b' },
+  earning: { name: 'Other Income', icon: '💵', color: '#10b981' },
+};
+
+/**
+ * Bulk-imports rows (e.g. parsed from a bank statement CSV). Categories are
+ * matched by name (case-insensitive) within the same type; unknown names are
+ * created when allowed, otherwise the row falls back to an "Other" category.
+ */
+const importTransactions = async (userId, rows, { createMissingCategories = true } = {}) => {
+  const categories = await prisma.category.findMany({ where: { userId } });
+  const lookup = new Map(categories.map((c) => [`${c.type}:${c.name.toLowerCase()}`, c]));
+  const createdCategories = [];
+
+  const resolveCategory = async (type, rawName) => {
+    const name = (rawName || '').trim();
+    if (name) {
+      const match = lookup.get(`${type}:${name.toLowerCase()}`);
+      if (match) return match;
+    }
+
+    const wanted = name && createMissingCategories ? { name, icon: '🏷️', color: '#6366f1' } : FALLBACK_CATEGORY[type];
+    const key = `${type}:${wanted.name.toLowerCase()}`;
+    if (lookup.has(key)) return lookup.get(key);
+
+    const created = await prisma.category.create({ data: { userId, type, ...wanted } });
+    lookup.set(key, created);
+    createdCategories.push(created.name);
+    return created;
+  };
+
+  const data = [];
+  for (const row of rows) {
+    const category = await resolveCategory(row.type, row.category);
+    data.push({
+      userId,
+      categoryId: category.id,
+      type: row.type,
+      amount: row.amount,
+      currency: 'INR',
+      description: (row.description && row.description.trim()) || category.name,
+      transactionDate: new Date(row.transactionDate),
+      notes: row.notes || null,
+    });
+  }
+
+  const { count } = await prisma.transaction.createMany({ data });
+
+  return {
+    count,
+    createdCategories,
+    message: `Imported ${count} transaction(s)`,
+  };
+};
+
 module.exports = {
+  importTransactions,
   createTransaction,
   getTransactions,
   getTransactionById,

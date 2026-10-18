@@ -778,6 +778,42 @@ a {
   overflow: hidden;
 }
 
+.modal.modal-lg {
+  max-width: 760px;
+}
+
+.import-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-xs);
+}
+
+.import-preview-table th,
+.import-preview-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-light);
+  white-space: nowrap;
+}
+
+.import-preview-table th {
+  color: var(--text-tertiary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.import-preview-table tr.invalid td {
+  color: var(--spend);
+  opacity: 0.8;
+}
+
+.import-mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
 .modal-header {
   display: flex;
   align-items: center;

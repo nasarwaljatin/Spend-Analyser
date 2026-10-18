@@ -18,6 +18,9 @@ A full-stack, state-of-the-art Personal Finance & Spend Analysis Web Application
 - 🎯 **Budget Ceilings & Alerts**: Set monthly spending caps on individual categories with dynamic visual progress bars (Safe, Warning, Exceeded) and threshold notifications.
 - 🔄 **Recurring Transactions & Subscriptions**: Track repeating bills (Netflix, Rent, Gym, SIP) with automated frequency scheduling (Daily, Weekly, Monthly, Yearly) and Pause/Resume controls.
 - 📥 **Export to Excel & CSV**: Instant 1-click export of transactions and analytics reports to `.xlsx` spreadsheet files via SheetJS.
+- 📤 **Import from CSV / Bank Statements**: Upload any CSV (bank statements with Debit/Credit columns, signed amounts, or the app's own export). Columns are auto-detected and editable, dates in DD/MM or MM/DD formats are supported, rows are previewed before import, and unknown categories can be created automatically.
+- 🏦 **Savings Goals**: Create goals (trip, gadget, emergency fund) with a target amount, optional deadline, icon and color. Add or withdraw money, track progress, and see exactly how much you need to save per month to hit each deadline.
+- 💡 **Smart Insights**: A month-at-a-glance page showing spend pace vs the same day last month, projected month-end spend, average daily spend, no-spend days, biggest category movers, top merchants/payees over 90 days, upcoming recurring bills for the next 14 days, and plain-language tips.
 - 🎨 **Modern Design System**:
   - Deep Indigo Glassmorphism Dark Mode (Default) and Crisp Daylight Light Mode with persistent toggle.
   - Custom typography with Indian Number formatting (`₹`, Lakhs `L`, Crores `Cr`, and tabular numbers).

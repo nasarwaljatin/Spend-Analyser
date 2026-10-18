@@ -8,4 +8,6 @@ export const transactionService = {
   delete: (id) => api.delete(`/transactions/${id}`),
   bulkDelete: (ids) => api.post('/transactions/bulk-delete', { ids }),
   bulkUpdateCategory: (ids, categoryId) => api.patch('/transactions/bulk-category', { ids, categoryId }),
+  importMany: (rows, createMissingCategories = true) =>
+    api.post('/transactions/import', { rows, createMissingCategories }),
 };

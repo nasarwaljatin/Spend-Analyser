@@ -381,4 +381,187 @@ const getCategoryTrend = async (userId, months = 6) => {
   };
 };
 
-module.exports = { getMonthlyReport, getYearlyReport, getTrends, getNetSummary, getWeeklyHeatmap, getCategoryTrend };
+const round2 = (n) => Number(n.toFixed(2));
+const pctChange = (current, previous) =>
+  previous > 0 ? Number((((current - previous) / previous) * 100).toFixed(1)) : null;
+
+/**
+ * Actionable spending insights for the current month: pace vs last month,
+ * month-end projection, frequent merchants, category movers and upcoming bills.
+ */
+const getInsights = async (userId) => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const dayOfMonth = now.getDate();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayStart = new Date(year, month, dayOfMonth);
+
+  const monthStart = new Date(year, month, 1);
+  const prevMonthStart = new Date(year, month - 1, 1);
+  const prevMonthEnd = new Date(year, month, 0, 23, 59, 59, 999);
+  // Same point in the previous month (clamped for shorter months)
+  const prevSamePoint = new Date(
+    year,
+    month - 1,
+    Math.min(dayOfMonth, prevMonthEnd.getDate()),
+    23, 59, 59, 999
+  );
+  const lookbackStart = new Date(year, month, dayOfMonth - 90);
+  const queryStart = lookbackStart < prevMonthStart ? lookbackStart : prevMonthStart;
+
+  const [transactions, upcomingRecurring] = await Promise.all([
+    prisma.transaction.findMany({
+      where: { userId, transactionDate: { gte: queryStart, lte: now } },
+      include: { category: { select: { name: true, icon: true, color: true } } },
+    }),
+    prisma.recurringTransaction.findMany({
+      where: {
+        userId,
+        isActive: true,
+        nextDueDate: { lte: new Date(year, month, dayOfMonth + 14, 23, 59, 59) },
+      },
+      include: { category: { select: { name: true, icon: true, color: true } } },
+      orderBy: { nextDueDate: 'asc' },
+    }),
+  ]);
+
+  const spends = transactions.filter((t) => t.type === 'spend');
+  const inRange = (t, from, to) => t.transactionDate >= from && t.transactionDate <= to;
+  const sum = (list) => list.reduce((acc, t) => acc + Number(t.amount), 0);
+
+  const thisMonthSpends = spends.filter((t) => inRange(t, monthStart, now));
+  const prevToDateSpends = spends.filter((t) => inRange(t, prevMonthStart, prevSamePoint));
+  const prevMonthSpends = spends.filter((t) => inRange(t, prevMonthStart, prevMonthEnd));
+  const thisMonthEarnings = sum(
+    transactions.filter((t) => t.type === 'earning' && inRange(t, monthStart, now))
+  );
+
+  const monthToDateSpend = sum(thisMonthSpends);
+  const prevMonthToDateSpend = sum(prevToDateSpends);
+  const avgDailySpend = monthToDateSpend / dayOfMonth;
+  const projectedMonthSpend = avgDailySpend * daysInMonth;
+
+  // Days this month (so far) with no spending at all
+  const spendDays = new Set(thisMonthSpends.map((t) => t.transactionDate.getDate()));
+  const noSpendDays = dayOfMonth - spendDays.size;
+
+  const biggest = thisMonthSpends.reduce(
+    (max, t) => (!max || Number(t.amount) > Number(max.amount) ? t : max),
+    null
+  );
+
+  // Frequent merchants / payees over the last 90 days (grouped by description)
+  const merchantMap = {};
+  spends
+    .filter((t) => t.transactionDate >= lookbackStart)
+    .forEach((t) => {
+      const key = (t.description || '').trim().toLowerCase();
+      if (!key) return;
+      if (!merchantMap[key]) {
+        merchantMap[key] = { name: t.description.trim(), total: 0, count: 0, icon: t.category.icon };
+      }
+      merchantMap[key].total += Number(t.amount);
+      merchantMap[key].count += 1;
+    });
+  const topMerchants = Object.values(merchantMap)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 6)
+    .map((m) => ({ ...m, total: round2(m.total), avg: round2(m.total / m.count) }));
+
+  // Category pace: this month-to-date vs same period last month
+  const categoryMap = {};
+  const addToCategory = (t, field) => {
+    if (!categoryMap[t.categoryId]) {
+      categoryMap[t.categoryId] = {
+        categoryId: t.categoryId,
+        name: t.category.name,
+        icon: t.category.icon,
+        color: t.category.color,
+        current: 0,
+        previous: 0,
+      };
+    }
+    categoryMap[t.categoryId][field] += Number(t.amount);
+  };
+  thisMonthSpends.forEach((t) => addToCategory(t, 'current'));
+  prevToDateSpends.forEach((t) => addToCategory(t, 'previous'));
+  const categoryMovers = Object.values(categoryMap)
+    .map((c) => ({
+      ...c,
+      current: round2(c.current),
+      previous: round2(c.previous),
+      change: round2(c.current - c.previous),
+      changePercent: pctChange(c.current, c.previous),
+    }))
+    .filter((c) => c.change !== 0)
+    .sort((a, b) => Math.abs(b.change) - Math.abs(a.change))
+    .slice(0, 5);
+
+  const upcomingBills = upcomingRecurring.map((r) => ({
+    id: r.id,
+    description: r.description,
+    type: r.type,
+    amount: Number(r.amount),
+    nextDueDate: r.nextDueDate,
+    frequency: r.frequency,
+    category: r.category,
+    isOverdue: r.nextDueDate < todayStart,
+  }));
+  const upcomingBillsTotal = upcomingBills
+    .filter((b) => b.type === 'spend')
+    .reduce((acc, b) => acc + b.amount, 0);
+
+  // Plain-language tips derived from the numbers above
+  const tips = [];
+  const paceChange = pctChange(monthToDateSpend, prevMonthToDateSpend);
+  if (monthToDateSpend === 0) {
+    tips.push({ level: 'warning', text: 'No spends logged this month yet. Add transactions or import a bank statement CSV.' });
+  } else if (paceChange !== null && paceChange >= 15) {
+    tips.push({ level: 'warning', text: `You're spending ${paceChange}% faster than at this point last month.` });
+  } else if (paceChange !== null && paceChange <= -10) {
+    tips.push({ level: 'success', text: `Nice! You're spending ${Math.abs(paceChange)}% less than at this point last month.` });
+  }
+  if (thisMonthEarnings > 0 && projectedMonthSpend > thisMonthEarnings) {
+    tips.push({ level: 'danger', text: "At this pace, your spending will exceed this month's income." });
+  }
+  const topMover = categoryMovers.find((c) => c.change > 0 && c.previous > 0 && c.changePercent >= 30);
+  if (topMover) {
+    tips.push({ level: 'warning', text: `${topMover.icon} ${topMover.name} is up ${topMover.changePercent}% vs last month.` });
+  }
+  if (monthToDateSpend > 0 && noSpendDays >= 3) {
+    tips.push({ level: 'success', text: `You've had ${noSpendDays} no-spend day(s) this month. Keep it up!` });
+  }
+  const overdueBills = upcomingBills.filter((b) => b.isOverdue).length;
+  if (overdueBills > 0) {
+    tips.push({ level: 'danger', text: `${overdueBills} recurring bill(s) are past their due date.` });
+  }
+
+  return {
+    period: { year, month: month + 1, dayOfMonth, daysInMonth },
+    monthToDateSpend: round2(monthToDateSpend),
+    prevMonthToDateSpend: round2(prevMonthToDateSpend),
+    paceChangePercent: paceChange,
+    prevMonthTotalSpend: round2(sum(prevMonthSpends)),
+    monthToDateEarnings: round2(thisMonthEarnings),
+    avgDailySpend: round2(avgDailySpend),
+    projectedMonthSpend: round2(projectedMonthSpend),
+    noSpendDays,
+    biggestSpend: biggest
+      ? {
+          id: biggest.id,
+          description: biggest.description,
+          amount: Number(biggest.amount),
+          date: biggest.transactionDate,
+          category: biggest.category,
+        }
+      : null,
+    topMerchants,
+    categoryMovers,
+    upcomingBills,
+    upcomingBillsTotal: round2(upcomingBillsTotal),
+    tips,
+  };
+};
+
+module.exports = { getMonthlyReport, getYearlyReport, getTrends, getNetSummary, getWeeklyHeatmap, getCategoryTrend, getInsights };

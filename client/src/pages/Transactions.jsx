@@ -10,6 +10,7 @@ import {
   IoFolderOutline,
   IoCheckmarkDoneOutline,
   IoCloseOutline,
+  IoCloudUploadOutline,
 } from 'react-icons/io5';
 import { transactionService } from '../services/transactionService';
 import { categoryService } from '../services/categoryService';
@@ -21,6 +22,7 @@ import { exportToExcel } from '../utils/exportToExcel';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
 import AmountInput from '../components/common/AmountInput';
+import ImportTransactionsModal from '../components/transactions/ImportTransactionsModal';
 
 export default function Transactions() {
   const [searchParams] = useSearchParams();
@@ -59,6 +61,7 @@ export default function Transactions() {
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const selectAllRef = useRef(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -386,6 +389,11 @@ export default function Transactions() {
         </div>
 
         <div className="page-header-actions">
+          <button onClick={() => setIsImportModalOpen(true)} className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <IoCloudUploadOutline size={18} />
+            <span>Import CSV</span>
+          </button>
+
           <button onClick={handleExport} className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
             <IoDownloadOutline size={18} />
             <span>Export All</span>
@@ -1003,6 +1011,15 @@ export default function Transactions() {
           </button>
         </div>
       </Modal>
+      <ImportTransactionsModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImported={() => {
+          fetchTransactions(1);
+          fetchCategories();
+        }}
+        currency={currency}
+      />
     </div>
   );
 }

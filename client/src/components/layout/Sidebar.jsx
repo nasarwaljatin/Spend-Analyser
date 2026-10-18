@@ -9,6 +9,8 @@ import {
   IoSettingsOutline,
   IoCloseOutline,
   IoLogoAndroid,
+  IoBulbOutline,
+  IoTrophyOutline,
 } from 'react-icons/io5';
 
 const navItems = [
@@ -16,8 +18,10 @@ const navItems = [
   { label: 'Transactions', path: '/transactions', icon: <IoSwapHorizontalOutline /> },
   { label: 'Categories', path: '/categories', icon: <IoFolderOutline /> },
   { label: 'Reports', path: '/reports', icon: <IoBarChartOutline /> },
+  { label: 'Insights', path: '/insights', icon: <IoBulbOutline /> },
   { label: 'Budgets', path: '/budgets', icon: <IoWalletOutline /> },
   { label: 'Recurring', path: '/recurring', icon: <IoRepeatOutline /> },
+  { label: 'Savings Goals', path: '/goals', icon: <IoTrophyOutline /> },
 ];
 
 export default function Sidebar({ isOpen, onClose }) {

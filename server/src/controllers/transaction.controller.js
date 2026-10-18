@@ -42,7 +42,16 @@ const bulkUpdateCategory = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
+const importMany = asyncHandler(async (req, res) => {
+  const { rows, createMissingCategories } = req.body;
+  const result = await transactionService.importTransactions(req.user.id, rows, {
+    createMissingCategories,
+  });
+  res.status(201).json(result);
+});
+
 module.exports = {
+  importMany,
   create,
   getAll,
   getById,

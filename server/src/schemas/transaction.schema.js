@@ -38,7 +38,27 @@ const bulkUpdateCategorySchema = z.object({
   categoryId: z.string().min(1, 'Target category is required'),
 });
 
+const importTransactionsSchema = z.object({
+  rows: z
+    .array(
+      z.object({
+        type: z.enum(['spend', 'earning']),
+        amount: z.coerce.number().positive('Amount must be positive').max(999999999999),
+        transactionDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
+          message: 'Invalid date format',
+        }),
+        description: z.string().max(500).optional().nullable(),
+        category: z.string().max(100).optional().nullable(),
+        notes: z.string().max(1000).optional().nullable(),
+      })
+    )
+    .min(1, 'Nothing to import')
+    .max(5000, 'You can import at most 5000 rows at once'),
+  createMissingCategories: z.boolean().default(true),
+});
+
 module.exports = {
+  importTransactionsSchema,
   createTransactionSchema,
   updateTransactionSchema,
   transactionQuerySchema,

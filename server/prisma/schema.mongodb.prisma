@@ -24,6 +24,7 @@ model User {
   transactions          Transaction[]
   budgets               Budget[]
   recurringTransactions RecurringTransaction[]
+  savingsGoals          SavingsGoal[]
 
   @@map("users")
 }
@@ -109,4 +110,23 @@ model RecurringTransaction {
   category Category @relation(fields: [categoryId], references: [id])
 
   @@map("recurring_transactions")
+}
+
+model SavingsGoal {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String    @map("user_id") @db.ObjectId
+  name         String
+  icon         String    @default("🎯")
+  color        String    @default("#6366f1")
+  targetAmount Float     @map("target_amount")
+  savedAmount  Float     @default(0) @map("saved_amount")
+  deadline     DateTime?
+  isCompleted  Boolean   @default(false) @map("is_completed")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("savings_goals")
 }

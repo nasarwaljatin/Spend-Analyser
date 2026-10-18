@@ -11,6 +11,8 @@ import Categories from './pages/Categories';
 import Reports from './pages/Reports';
 import Budgets from './pages/Budgets';
 import Recurring from './pages/Recurring';
+import Goals from './pages/Goals';
+import Insights from './pages/Insights';
 import Settings from './pages/Settings';
 import DownloadApp from './pages/DownloadApp';
 
@@ -62,6 +64,14 @@ export const router = createBrowserRouter([
       {
         path: 'recurring',
         element: <Recurring />,
+      },
+      {
+        path: 'goals',
+        element: <Goals />,
+      },
+      {
+        path: 'insights',
+        element: <Insights />,
       },
       {
         path: 'settings',

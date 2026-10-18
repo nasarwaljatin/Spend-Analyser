@@ -44,4 +44,9 @@ const categoryTrend = asyncHandler(async (req, res) => {
   res.json(data);
 });
 
-module.exports = { monthly, yearly, trends, netSummary, weeklyHeatmap, categoryTrend };
+const insights = asyncHandler(async (req, res) => {
+  const data = await reportService.getInsights(req.user.id);
+  res.json(data);
+});
+
+module.exports = { monthly, yearly, trends, netSummary, weeklyHeatmap, categoryTrend, insights };

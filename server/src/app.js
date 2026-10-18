@@ -47,6 +47,7 @@ const budgetRoutes = require('./routes/budget.routes');
 const recurringRoutes = require('./routes/recurring.routes');
 const exportRoutes = require('./routes/export.routes');
 const downloadRoutes = require('./routes/download.routes');
+const goalRoutes = require('./routes/goal.routes');
 
 // Mount on both /api/path and /path to gracefully support VITE_API_URL with or without /api suffix
 app.use('/api/auth', authRoutes);
@@ -69,6 +70,9 @@ app.use('/recurring', recurringRoutes);
 
 app.use('/api/export', exportRoutes);
 app.use('/export', exportRoutes);
+
+app.use('/api/goals', goalRoutes);
+app.use('/goals', goalRoutes);
 
 app.use('/api/download', downloadRoutes);
 app.use('/download', downloadRoutes);
