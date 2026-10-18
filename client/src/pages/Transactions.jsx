@@ -26,6 +26,7 @@ import Loader from '../components/common/Loader';
 import AmountInput from '../components/common/AmountInput';
 import ImportTransactionsModal from '../components/transactions/ImportTransactionsModal';
 import CategoryPicker from '../components/transactions/CategoryPicker';
+import PeriodBreakdown from '../components/transactions/PeriodBreakdown';
 
 const PERIODS = [
   { value: 'day', label: 'Day' },
@@ -34,6 +35,7 @@ const PERIODS = [
   { value: 'all', label: 'All' },
 ];
 const PERIOD_STORAGE_KEY = 'spendwise.txPeriod';
+const PAGE_SIZE = 10;
 
 const readStoredPeriod = () => {
   try {
@@ -80,6 +82,70 @@ const isCurrentPeriod = (period, anchor) => {
   return true;
 };
 
+const pad2 = (n) => String(n).padStart(2, '0');
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const EMPTY_BUCKET = { earning: 0, spend: 0, net: 0, count: 0 };
+
+/**
+ * Full set of rows for the period: 12 months for a year, every day for a
+ * month, and one row per year (that has data) for "all". Missing buckets
+ * are filled with zeros so every month/day is shown.
+ */
+const buildBreakdownRows = (period, anchor, buckets) => {
+  const byKey = Object.fromEntries(buckets.map((b) => [b.key, b]));
+  const now = new Date();
+
+  if (period === 'year') {
+    const y = anchor.getFullYear();
+    return MONTH_LONG.map((name, i) => {
+      const key = `${y}-${pad2(i + 1)}`;
+      return {
+        ...EMPTY_BUCKET,
+        ...byKey[key],
+        key,
+        label: name,
+        sub: String(y),
+        date: new Date(y, i, 1),
+        isCurrent: y === now.getFullYear() && i === now.getMonth(),
+        isFuture: new Date(y, i, 1) > now,
+      };
+    });
+  }
+
+  if (period === 'month') {
+    const y = anchor.getFullYear();
+    const m = anchor.getMonth();
+    const days = new Date(y, m + 1, 0).getDate();
+    return Array.from({ length: days }, (_, i) => {
+      const date = new Date(y, m, i + 1);
+      const key = `${y}-${pad2(m + 1)}-${pad2(i + 1)}`;
+      return {
+        ...EMPTY_BUCKET,
+        ...byKey[key],
+        key,
+        label: `${i + 1} ${MONTH_SHORT[m]}`,
+        sub: date.toLocaleDateString('en-IN', { weekday: 'long' }),
+        date,
+        isCurrent: date.toDateString() === now.toDateString(),
+        isFuture: date > now,
+      };
+    });
+  }
+
+  // all: one row per year with data, newest first
+  return [...buckets]
+    .sort((a, b) => b.key.localeCompare(a.key))
+    .map((b) => ({
+      ...b,
+      label: b.key,
+      sub: Number(b.key) === now.getFullYear() ? 'This year' : null,
+      date: new Date(Number(b.key), 0, 1),
+      isCurrent: Number(b.key) === now.getFullYear(),
+      isFuture: false,
+    }));
+};
+
 const REPEAT_OPTIONS = [
   { value: '', label: 'Once' },
   { value: 'daily', label: 'Daily' },
@@ -110,6 +176,8 @@ export default function Transactions() {
   const [period, setPeriod] = useState(readStoredPeriod);
   const [periodAnchor, setPeriodAnchor] = useState(() => new Date());
   const [periodSummary, setPeriodSummary] = useState(null);
+  const [breakdownBuckets, setBreakdownBuckets] = useState([]);
+  const isGroupedPeriod = period === 'month' || period === 'year';
 
   // Single Transaction Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -167,6 +235,15 @@ export default function Transactions() {
     }
   };
 
+  // Drill down from a breakdown row (year -> month -> day) without changing
+  // the remembered default period.
+  const drillInto = (row) => {
+    const next = period === 'all' ? 'year' : period === 'year' ? 'month' : 'day';
+    setPeriod(next);
+    setPeriodAnchor(row.date);
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
   const movePeriod = (delta) => {
     setPeriodAnchor((prev) => (delta === 0 ? new Date() : shiftAnchor(period, prev, delta)));
     setPagination((prev) => ({ ...prev, page: 1 }));
@@ -195,12 +272,26 @@ export default function Transactions() {
         startDate: rangeStart ? rangeStart.toISOString() : undefined,
         endDate: rangeEnd ? rangeEnd.toISOString() : undefined,
       };
-      const params = { ...filters, page, limit: pagination.limit, sortBy, sortOrder };
-      const [res, summaryRes] = await Promise.all([
-        transactionService.getAll(params),
+      const grouped = period === 'month' || period === 'year';
+      // A single day loads all its transactions at once (no paging)
+      const params =
+        period === 'day'
+          ? { ...filters, page: 1, limit: 100, sortBy, sortOrder }
+          : { ...filters, page, limit: PAGE_SIZE, sortBy, sortOrder };
+      const groupBy = period === 'year' ? 'month' : period === 'month' ? 'day' : 'year';
+
+      const [res, summaryRes, breakdownRes] = await Promise.all([
+        grouped ? Promise.resolve(null) : transactionService.getAll(params),
         transactionService.getSummary(filters).catch(() => null),
+        period === 'day'
+          ? Promise.resolve(null)
+          : transactionService
+              .getBreakdown({ ...filters, groupBy, tzOffset: String(new Date().getTimezoneOffset()) })
+              .catch(() => null),
       ]);
       setPeriodSummary(summaryRes?.data || null);
+      setBreakdownBuckets(breakdownRes?.data?.buckets || []);
+      if (!res) return;
       const list = res.data?.transactions || res.data?.data || (Array.isArray(res.data) ? res.data : []);
       const paginationData = res.data?.pagination || { page: 1, limit: 10, total: list.length, pages: 1 };
       if (!paginationData.pages && paginationData.totalPages) {
@@ -467,6 +558,11 @@ export default function Transactions() {
       setBulkLoading(false);
     }
   };
+
+  const breakdownRows = useMemo(
+    () => (period === 'day' ? [] : buildBreakdownRows(period, periodAnchor, breakdownBuckets)),
+    [period, periodAnchor, breakdownBuckets]
+  );
 
   const availableCategories = useMemo(() => {
     const list = categories.filter((c) => (c.type || '').toLowerCase() === (formData.type || '').toLowerCase());
@@ -752,8 +848,23 @@ export default function Transactions() {
         </div>
       )}
 
+      {/* Grouped rows: 12 months for a year, every day for a month, years for all */}
+      {(isGroupedPeriod || (period === 'all' && breakdownRows.length > 0)) && (
+        <PeriodBreakdown
+          rows={breakdownRows}
+          unitLabel={period === 'year' ? 'Month' : period === 'month' ? 'Day' : 'Year'}
+          currency={currency}
+          loading={loading}
+          onSelect={drillInto}
+        />
+      )}
+
+      {period === 'all' && breakdownRows.length > 0 && !loading && transactions.length > 0 && (
+        <h2 className="breakdown-section-title">All transactions</h2>
+      )}
+
       {/* Transaction List */}
-      {loading ? (
+      {isGroupedPeriod ? null : loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
           <Loader size={48} />
         </div>

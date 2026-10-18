@@ -41,6 +41,8 @@ const transactionQuerySchema = z.object({
   search: z.string().optional(),
   sortBy: z.enum(['transactionDate', 'amount', 'createdAt']).optional(),
   sortOrder: z.enum(['asc', 'desc']).optional(),
+  groupBy: z.enum(['day', 'month', 'year']).optional(),
+  tzOffset: z.string().regex(/^-?\d{1,4}$/).optional(),
 });
 
 const bulkDeleteTransactionsSchema = z.object({

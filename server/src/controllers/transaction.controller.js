@@ -57,7 +57,13 @@ const summary = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
+const breakdown = asyncHandler(async (req, res) => {
+  const result = await transactionService.getTransactionBreakdown(req.user.id, req.query);
+  res.json(result);
+});
+
 module.exports = {
+  breakdown,
   summary,
   importMany,
   create,

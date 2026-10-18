@@ -256,7 +256,56 @@ const getTransactionSummary = async (userId, query) => {
   };
 };
 
+/**
+ * Earned / spent / net per day, month or year for the list filters.
+ * `tzOffset` is the client's Date#getTimezoneOffset() so buckets follow the
+ * user's local calendar rather than the server's.
+ */
+const getTransactionBreakdown = async (userId, query) => {
+  const groupBy = ['day', 'month', 'year'].includes(query.groupBy) ? query.groupBy : 'day';
+  const offsetMinutes = Number.isFinite(Number(query.tzOffset)) ? Number(query.tzOffset) : 0;
+  const where = buildTransactionWhere(userId, query);
+
+  const rows = await prisma.transaction.findMany({
+    where,
+    select: { type: true, amount: true, transactionDate: true },
+  });
+
+  const pad = (n) => String(n).padStart(2, '0');
+  const buckets = {};
+  rows.forEach((t) => {
+    const local = new Date(t.transactionDate.getTime() - offsetMinutes * 60000);
+    const y = local.getUTCFullYear();
+    const m = pad(local.getUTCMonth() + 1);
+    const key = groupBy === 'year' ? `${y}` : groupBy === 'month' ? `${y}-${m}` : `${y}-${m}-${pad(local.getUTCDate())}`;
+
+    if (!buckets[key]) buckets[key] = { key, earning: 0, spend: 0, earningCount: 0, spendCount: 0 };
+    const b = buckets[key];
+    if (t.type === 'earning') {
+      b.earning += Number(t.amount);
+      b.earningCount += 1;
+    } else {
+      b.spend += Number(t.amount);
+      b.spendCount += 1;
+    }
+  });
+
+  return {
+    groupBy,
+    buckets: Object.values(buckets)
+      .sort((a, b) => a.key.localeCompare(b.key))
+      .map((b) => ({
+        ...b,
+        earning: Number(b.earning.toFixed(2)),
+        spend: Number(b.spend.toFixed(2)),
+        net: Number((b.earning - b.spend).toFixed(2)),
+        count: b.earningCount + b.spendCount,
+      })),
+  };
+};
+
 module.exports = {
+  getTransactionBreakdown,
   getTransactionSummary,
   importTransactions,
   createTransaction,
